@@ -1,8 +1,12 @@
 name: Release
 
-# Push a tag like v0.1.0 (or run this workflow by hand with a version) to build a signed APK and AAB
-# and publish them as a GitHub Release.
+# Any of these builds a signed APK and AAB and attaches them to the GitHub Release:
+# - publish a release on GitHub (tag 0.1.0 or v0.1.0),
+# - push a tag like v0.1.0,
+# - run this workflow by hand with a version (adds the files to that version's release, or creates it).
 on:
+  release:
+    types: [published]
   push:
     tags: ["v*.*.*"]
   workflow_dispatch:
@@ -30,7 +34,7 @@ jobs:
         env:
           INPUT_VERSION: ${{ github.event.inputs.version }}
         run: |
-          if [ "$GITHUB_EVENT_NAME" = "push" ]; then v="${GITHUB_REF_NAME#v}"; else v="${INPUT_VERSION#v}"; fi
+          if [ "$GITHUB_EVENT_NAME" = "workflow_dispatch" ]; then v="${INPUT_VERSION#v}"; else v="${GITHUB_REF_NAME#v}"; fi
           if ! printf '%s' "$v" | grep -Eq '^[0-9]+\.[0-9]+\.[0-9]+$'; then
             echo "::error::Version must look like 1.2.3, got '$v'"; exit 1
           fi
@@ -96,4 +100,11 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           VERSION: ${{ steps.version.outputs.name }}
         run: |
+          # Attach to an existing release for this version (tagged with or without "v"), else create one.
+          for tag in "v$VERSION" "$VERSION"; do
+            if gh release view "$tag" > /dev/null 2>&1; then
+              gh release upload "$tag" dist/* --clobber
+              exit 0
+            fi
+          done
           gh release create "v$VERSION" dist/* --title "Baytna $VERSION" --generate-notes --target "$GITHUB_SHA"

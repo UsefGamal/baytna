@@ -35,7 +35,8 @@ GitHub → Settings → Secrets and variables → Actions → New repository sec
 | `RELEASE_KEY_PASSWORD` | key password (same as the keystore password unless you set another) |
 
 ## Cutting a release
-Actions → Release → Run workflow → version `0.1.0`, or push a tag `v0.1.0`.
+Publish a release on GitHub (Releases → Draft a new release, tag `0.1.0` or `v0.1.0`), push a tag `v0.1.0`,
+or run Actions → Release → Run workflow with version `0.1.0`. The signed APK and AAB are attached to that release.
 The version code is derived from the version (`1.2.3` → `10203`), so every release needs a higher version.
 
 ## Google Play

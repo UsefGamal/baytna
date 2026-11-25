@@ -249,7 +249,6 @@
     <string name="join_anyway">استبدال وانضمام</string>
     <string name="restore_title">الاستعادة من السحابة</string>
     <string name="restore_body">هذا الحساب مرتبط ببيت بالفعل. نزّله على هذا الهاتف.</string>
-    <string name="restore">استعادة</string>
     <string name="onboarding_join">الانضمام لبيت شريكي أو الاستعادة</string>
     <string name="err_cloud_network">لا يوجد اتصال. حاول مرة أخرى عند الاتصال بالإنترنت.</string>
     <string name="err_cloud_credentials">البريد الإلكتروني أو كلمة المرور غير صحيحة.</string>

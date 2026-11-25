@@ -249,7 +249,6 @@
     <string name="join_anyway">Replace and join</string>
     <string name="restore_title">Restore from the cloud</string>
     <string name="restore_body">This account already belongs to a household. Download it to this phone.</string>
-    <string name="restore">Restore</string>
     <string name="onboarding_join">Join my partner\'s household or restore</string>
     <string name="err_cloud_network">No connection. Try again when you\'re online.</string>
     <string name="err_cloud_credentials">Wrong email or password.</string>

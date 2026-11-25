@@ -37,7 +37,7 @@ data class BudgetState(val budget: BudgetEntity, val allocations: List<BudgetAll
 
 /** Activity-scoped view model: every screen reads the same Room-backed snapshot. */
 @OptIn(ExperimentalCoroutinesApi::class)
-class MainViewModel(private val container: AppContainer) : ViewModel() {
+class MainViewModel(val container: AppContainer) : ViewModel() {
     val repo: BaytnaRepository = container.repository
     val month: StateFlow<YearMonth> = container.selectedMonth
 

@@ -1,5 +1,6 @@
 package com.baytna.app.data
 
+import android.app.Application
 import android.content.Context
 import androidx.room.Room
 import androidx.test.core.app.ApplicationProvider
@@ -29,9 +30,11 @@ import org.junit.Assert.fail
 import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
+import org.robolectric.annotation.Config
 import java.time.YearMonth
 
 @RunWith(AndroidJUnit4::class)
+@Config(application = Application::class)
 class BaytnaRepositoryTest {
     private lateinit var db: BaytnaDatabase
     private lateinit var repo: BaytnaRepository

@@ -1,5 +1,11 @@
 package com.baytna.app.ui.screens
 
+import androidx.activity.compose.BackHandler
+import androidx.compose.material3.OutlinedButton
+import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.lifecycle.viewmodel.initializer
+import androidx.lifecycle.viewmodel.viewModelFactory
+import com.baytna.app.ui.CloudViewModel
 import androidx.appcompat.app.AppCompatDelegate
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -41,6 +47,15 @@ import com.baytna.domain.money.MoneyParser
 
 @Composable
 fun OnboardingScreen(vm: MainViewModel) {
+    var showCloud by rememberSaveable { mutableStateOf(false) }
+    if (showCloud) {
+        val cloudVm: CloudViewModel = viewModel(factory = viewModelFactory { initializer { CloudViewModel(vm.container) } })
+        BackHandler { showCloud = false }
+        Surface(Modifier.fillMaxSize().safeDrawingPadding()) {
+            CloudScreen(cloudVm, household = null, members = emptyList(), meId = null, pending = 0) { showCloud = false }
+        }
+        return
+    }
     var householdName by rememberSaveable { mutableStateOf("") }
     var myName by rememberSaveable { mutableStateOf("") }
     var partnerName by rememberSaveable { mutableStateOf("") }
@@ -66,6 +81,9 @@ fun OnboardingScreen(vm: MainViewModel) {
             Text(stringResource(R.string.tagline), style = MaterialTheme.typography.titleMedium)
             Text(stringResource(R.string.onboarding_intro), style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant)
+            OutlinedButton(onClick = { showCloud = true }, modifier = Modifier.fillMaxWidth()) {
+                Text(stringResource(R.string.onboarding_join))
+            }
 
             Text(stringResource(R.string.language), style = MaterialTheme.typography.titleSmall)
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {

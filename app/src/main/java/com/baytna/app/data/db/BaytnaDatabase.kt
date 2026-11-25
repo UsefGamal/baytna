@@ -28,6 +28,7 @@ abstract class BaytnaDatabase : RoomDatabase() {
     abstract fun transactionDao(): TransactionDao
     abstract fun budgetDao(): BudgetDao
     abstract fun outboxDao(): OutboxDao
+    abstract fun syncDao(): SyncDao
 
     companion object {
         const val NAME = "baytna.db"

@@ -1,0 +1,99 @@
+name: Release
+
+# Push a tag like v0.1.0 (or run this workflow by hand with a version) to build a signed APK and AAB
+# and publish them as a GitHub Release.
+on:
+  push:
+    tags: ["v*.*.*"]
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Version to release, e.g. 0.1.0 (creates tag v0.1.0)"
+        required: true
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release
+  cancel-in-progress: false
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Work out version
+        id: version
+        env:
+          INPUT_VERSION: ${{ github.event.inputs.version }}
+        run: |
+          if [ "$GITHUB_EVENT_NAME" = "push" ]; then v="${GITHUB_REF_NAME#v}"; else v="${INPUT_VERSION#v}"; fi
+          if ! printf '%s' "$v" | grep -Eq '^[0-9]+\.[0-9]+\.[0-9]+$'; then
+            echo "::error::Version must look like 1.2.3, got '$v'"; exit 1
+          fi
+          IFS=. read -r major minor patch <<< "$v"
+          if [ "$minor" -gt 99 ] || [ "$patch" -gt 99 ]; then echo "::error::Minor and patch must be 0-99"; exit 1; fi
+          echo "name=$v" >> "$GITHUB_OUTPUT"
+          echo "code=$((major * 10000 + minor * 100 + patch))" >> "$GITHUB_OUTPUT"
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+
+      - uses: gradle/actions/setup-gradle@v4
+
+      - name: Write Firebase config
+        env:
+          GOOGLE_SERVICES_JSON: ${{ secrets.GOOGLE_SERVICES_JSON }}
+        run: |
+          if [ -n "$GOOGLE_SERVICES_JSON" ]; then printf '%s' "$GOOGLE_SERVICES_JSON" > app/google-services.json; fi
+          if [ -f app/google-services.json ] && ! grep -q '"package_name": *"com.baytna.app"' app/google-services.json; then
+            echo "::error::app/google-services.json has no Android app for com.baytna.app. Add that app in the Firebase console and commit the new google-services.json."
+            exit 1
+          fi
+
+      - name: Write release keystore
+        env:
+          KEYSTORE_BASE64: ${{ secrets.RELEASE_KEYSTORE_BASE64 }}
+        run: |
+          if [ -z "$KEYSTORE_BASE64" ]; then
+            echo "::error::Missing RELEASE_KEYSTORE_BASE64 secret. See docs/RELEASING.md."; exit 1
+          fi
+          printf '%s' "$KEYSTORE_BASE64" | base64 -d > "$RUNNER_TEMP/release.jks"
+          echo "BAYTNA_KEYSTORE_PATH=$RUNNER_TEMP/release.jks" >> "$GITHUB_ENV"
+
+      - name: Domain unit tests
+        run: ./gradlew :domain:test --stacktrace
+
+      - name: Build signed APK and AAB
+        env:
+          BAYTNA_KEYSTORE_PASSWORD: ${{ secrets.RELEASE_KEYSTORE_PASSWORD }}
+          BAYTNA_KEY_ALIAS: ${{ secrets.RELEASE_KEY_ALIAS }}
+          BAYTNA_KEY_PASSWORD: ${{ secrets.RELEASE_KEY_PASSWORD }}
+        run: >
+          ./gradlew :app:assembleRelease :app:bundleRelease --stacktrace
+          -Pbaytna.versionName=${{ steps.version.outputs.name }}
+          -Pbaytna.versionCode=${{ steps.version.outputs.code }}
+
+      - name: Verify APK signature
+        run: |
+          apksigner="$(ls -d "$ANDROID_HOME"/build-tools/* | sort -V | tail -1)/apksigner"
+          "$apksigner" verify --print-certs app/build/outputs/apk/release/app-release.apk | head -3
+
+      - name: Name files
+        run: |
+          mkdir dist
+          cp app/build/outputs/apk/release/app-release.apk "dist/baytna-${{ steps.version.outputs.name }}.apk"
+          cp app/build/outputs/bundle/release/app-release.aab "dist/baytna-${{ steps.version.outputs.name }}.aab"
+          rm -f "$RUNNER_TEMP/release.jks"
+
+      - name: Publish GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          VERSION: ${{ steps.version.outputs.name }}
+        run: |
+          gh release create "v$VERSION" dist/* --title "Baytna $VERSION" --generate-notes --target "$GITHUB_SHA"

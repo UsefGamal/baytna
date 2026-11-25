@@ -1,0 +1,25 @@
+{
+  "project": "Baytna",
+  "pack_version": "1.0",
+  "documents": [
+    "README.md",
+    "docs/PRODUCT_REQUIREMENTS.md",
+    "docs/ARCHITECTURE.md",
+    "database/DATA_MODEL.md",
+    "docs/SYNC_AND_SECURITY.md",
+    "docs/UI_UX_SPEC.md",
+    "docs/TEST_PLAN.md",
+    "docs/ROADMAP_AND_BACKLOG.md",
+    "agents/AGENT_TEAM_PLAN.md",
+    "prompts/LEAD_ORCHESTRATOR_PROMPT.md",
+    "prompts/SPECIALIST_AGENT_PROMPTS.md",
+    "database/POSTGRESQL_MVP.sql"
+  ],
+  "fixed_decisions": {
+    "visibility": "all transaction details visible to both household members",
+    "hosting": "Firebase initial; self-hosted Supabase later; no dual-write",
+    "budgeting": "hybrid category limits plus zero-based allocation",
+    "currency": "EGP",
+    "offline": "Room local source of truth with outbox synchronization"
+  }
+}

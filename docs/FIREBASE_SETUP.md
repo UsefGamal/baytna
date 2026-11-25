@@ -11,8 +11,8 @@ Cloud Functions, and security rules enforce membership, versions, idempotency an
 3. Authentication → Sign-in method → enable **Email/Password**.
 4. Firestore Database → create in **production mode** (for example `europe-west1`).
 5. Firestore → Rules → paste [`firestore.rules`](../firestore.rules) → Publish. Repeat whenever that file changes.
-6. Download `google-services.json` and save its full text as the GitHub Actions secret `GOOGLE_SERVICES_JSON`.
-   CI writes it to `app/google-services.json` (git-ignored). Without the secret the APK still builds and runs local-only.
+6. `app/google-services.json` is committed (Firebase app config is not a secret; the security rules protect the data).
+   A `GOOGLE_SERVICES_JSON` Actions secret, if set, overrides it in CI. Without either, the APK builds local-only.
 
 No indexes need to be created: every query uses a single field.
 

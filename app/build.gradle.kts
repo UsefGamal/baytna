@@ -7,8 +7,8 @@ plugins {
     alias(libs.plugins.ksp)
 }
 
-// Firebase config is not committed. CI writes it from the GOOGLE_SERVICES_JSON secret; without it the app
-// builds and runs local-only, and the cloud screen says sync is not configured in this build.
+// Firebase config lives in app/google-services.json (a GOOGLE_SERVICES_JSON secret overrides it in CI). Without it
+// the app builds and runs local-only, and the cloud screen says sync is not configured in this build.
 val hasFirebaseConfig = file("google-services.json").exists()
 if (hasFirebaseConfig) apply(plugin = "com.google.gms.google-services")
 

@@ -20,8 +20,9 @@ android {
         applicationId = "com.baytna.app"
         minSdk = 26
         targetSdk = 35
-        versionCode = 1
-        versionName = "0.1.0"
+        // Release builds pass these from the git tag (v1.2.3 -> versionName 1.2.3, versionCode 10203).
+        versionCode = (findProperty("baytna.versionCode") as String?)?.toInt() ?: 1
+        versionName = (findProperty("baytna.versionName") as String?) ?: "0.1.0"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
@@ -34,6 +35,16 @@ android {
             keyAlias = "androiddebugkey"
             keyPassword = "android"
         }
+        // The release key never enters the repo: CI writes it from secrets and passes its path and passwords here.
+        val releaseStore = System.getenv("BAYTNA_KEYSTORE_PATH")
+        if (!releaseStore.isNullOrBlank()) {
+            create("release") {
+                storeFile = file(releaseStore)
+                storePassword = System.getenv("BAYTNA_KEYSTORE_PASSWORD")
+                keyAlias = System.getenv("BAYTNA_KEY_ALIAS")
+                keyPassword = System.getenv("BAYTNA_KEY_PASSWORD")
+            }
+        }
     }
 
     buildTypes {
@@ -43,6 +54,7 @@ android {
             versionNameSuffix = "-debug"
         }
         release {
+            signingConfig = signingConfigs.findByName("release")
             isMinifyEnabled = false
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
         }

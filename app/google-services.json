@@ -7,6 +7,25 @@
   "client": [
     {
       "client_info": {
+        "mobilesdk_app_id": "1:992448939459:android:468ca5d4d48ba882452976",
+        "android_client_info": {
+          "package_name": "com.baytna.app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDPdUQyF_jubYUyXs0Huw9KQjFmqP5Z18A"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    },
+    {
+      "client_info": {
         "mobilesdk_app_id": "1:992448939459:android:3dc2c0885d9a3844452976",
         "android_client_info": {
           "package_name": "com.baytna.app.debug"

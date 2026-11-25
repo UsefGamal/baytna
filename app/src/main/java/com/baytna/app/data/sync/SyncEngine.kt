@@ -171,6 +171,10 @@ class SyncEngine(
                     dao.upsertBudget(b)
                 }
                 Records.ALLOCATION -> if (r.deleted) dao.deleteAllocation(r.id) else dao.upsertAllocation(Records.allocation(j))
+                Records.GOAL -> dao.upsertGoal(Records.goal(j))
+                Records.CONTRIBUTION -> dao.upsertContribution(Records.contribution(j))
+                Records.RULE -> dao.upsertRule(Records.rule(j))
+                Records.ACTIVITY -> dao.upsertActivity(Records.activity(j))
                 else -> return Outcome.SKIPPED
             }
             Outcome.APPLIED
@@ -202,7 +206,7 @@ class SyncEngine(
                 apply(householdId, local, force = true)
                 val op = when {
                     remote == null -> SyncOutboxEntity.OP_CREATE
-                    type == Records.TRANSACTION && !j.isNull("deletedAt") -> SyncOutboxEntity.OP_DELETE
+                    type in SOFT_DELETED_TYPES && j.has("deletedAt") && !j.isNull("deletedAt") -> SyncOutboxEntity.OP_DELETE
                     else -> SyncOutboxEntity.OP_UPDATE
                 }
                 enqueue(householdId, type, id, op, j.toString(), remoteVersion)
@@ -235,6 +239,7 @@ class SyncEngine(
 
     companion object {
         const val PROVIDER = "firebase"
+        private val SOFT_DELETED_TYPES = setOf(Records.TRANSACTION, Records.GOAL, Records.CONTRIBUTION, Records.RULE)
         /** Re-read a short window before the cursor; applying is idempotent, so overlap is harmless. */
         const val OVERLAP_MS = 60_000L
     }

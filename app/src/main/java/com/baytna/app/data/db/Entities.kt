@@ -11,6 +11,8 @@ import com.baytna.domain.model.CategoryType
 import com.baytna.domain.model.MemberRole
 import com.baytna.domain.model.Ownership
 import com.baytna.domain.model.TransactionType
+import com.baytna.domain.planning.ContributionType
+import com.baytna.domain.planning.Frequency
 
 /** Local sync state of a transaction row: PENDING until its outbox operations are acknowledged by the cloud. */
 enum class SyncState { PENDING, SYNCED, CONFLICT }
@@ -172,6 +174,109 @@ data class BudgetAllocationEntity(
     val label: String?,
     val createdAt: Long,
     val updatedAt: Long,
+    val version: Int = 1,
+)
+
+/** A savings goal. Progress comes from its contributions; goals never touch account balances. */
+@Entity(
+    tableName = "savings_goals",
+    foreignKeys = [ForeignKey(entity = HouseholdEntity::class, parentColumns = ["id"], childColumns = ["householdId"])],
+    indices = [Index("householdId")],
+)
+data class SavingsGoalEntity(
+    @PrimaryKey val id: String,
+    val householdId: String,
+    val name: String,
+    val targetMinor: Long,
+    val currency: String,
+    /** Null for a shared goal. */
+    val ownerUserId: String?,
+    /** ISO local date, optional. */
+    val targetDate: String?,
+    val icon: String,
+    val createdAt: Long,
+    val updatedAt: Long,
+    val version: Int = 1,
+    val deletedAt: Long? = null,
+)
+
+/** Money put into or taken out of a goal. A planning record, not a transaction (not counted as an expense). */
+@Entity(
+    tableName = "goal_contributions",
+    foreignKeys = [ForeignKey(entity = SavingsGoalEntity::class, parentColumns = ["id"], childColumns = ["goalId"])],
+    indices = [Index("goalId")],
+)
+data class GoalContributionEntity(
+    @PrimaryKey val id: String,
+    val householdId: String,
+    val goalId: String,
+    val type: ContributionType,
+    val amountMinor: Long,
+    val memberId: String,
+    val note: String,
+    /** UTC epoch millis. */
+    val occurredAt: Long,
+    val createdAt: Long,
+    val updatedAt: Long,
+    val version: Int = 1,
+    val deletedAt: Long? = null,
+)
+
+/** A repeating income or expense (rent, salary, bills). Each occurrence is posted only when someone confirms it. */
+@Entity(
+    tableName = "recurring_rules",
+    foreignKeys = [
+        ForeignKey(entity = HouseholdEntity::class, parentColumns = ["id"], childColumns = ["householdId"]),
+        ForeignKey(entity = AccountEntity::class, parentColumns = ["id"], childColumns = ["accountId"]),
+        ForeignKey(entity = CategoryEntity::class, parentColumns = ["id"], childColumns = ["categoryId"]),
+    ],
+    indices = [Index("householdId"), Index("accountId"), Index("categoryId")],
+)
+data class RecurringRuleEntity(
+    @PrimaryKey val id: String,
+    val householdId: String,
+    val name: String,
+    /** INCOME or EXPENSE. */
+    val type: TransactionType,
+    val amountMinor: Long,
+    val accountId: String,
+    val categoryId: String?,
+    val paidByUserId: String,
+    val ownership: Ownership,
+    val personalOwnerUserId: String?,
+    val frequency: Frequency,
+    val interval: Int,
+    /** ISO local date of the first occurrence; later occurrences are computed from it. */
+    val startDate: String,
+    /** ISO local date of the oldest occurrence not yet confirmed or skipped. */
+    val nextDueDate: String,
+    val isActive: Boolean,
+    val createdAt: Long,
+    val updatedAt: Long,
+    val version: Int = 1,
+    val deletedAt: Long? = null,
+)
+
+/** Who changed what. Written with every local change and synced, never edited. */
+@Entity(
+    tableName = "activity_logs",
+    foreignKeys = [ForeignKey(entity = HouseholdEntity::class, parentColumns = ["id"], childColumns = ["householdId"])],
+    indices = [Index(value = ["householdId", "createdAt"])],
+)
+data class ActivityEntity(
+    @PrimaryKey val id: String,
+    val householdId: String,
+    val actorMemberId: String?,
+    val entityType: String,
+    val entityId: String,
+    /** CREATE, UPDATE or DELETE. */
+    val action: String,
+    /** Sub-kind of the row, e.g. EXPENSE for a transaction or WITHDRAWAL for a goal movement. */
+    val detail: String?,
+    val amountMinor: Long?,
+    /** Name or note of the row at the time of the change. */
+    val label: String?,
+    val createdAt: Long,
     val version: Int = 1,
 )
 

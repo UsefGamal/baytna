@@ -99,7 +99,8 @@ service cloud.firestore {
           let d = request.resource.data;
           return d.keys().hasOnly(['type', 'id', 'householdId', 'version', 'deleted', 'payload', 'updatedBy', 'serverUpdatedAt', 'lastOpId'])
             && d.keys().hasAll(['type', 'id', 'householdId', 'version', 'deleted', 'payload', 'updatedBy', 'serverUpdatedAt', 'lastOpId'])
-            && d.type in ['household', 'member', 'account', 'category', 'transaction', 'budget', 'budget_allocation']
+            && d.type in ['household', 'member', 'account', 'category', 'transaction', 'budget', 'budget_allocation',
+                          'savings_goal', 'goal_contribution', 'recurring_rule', 'activity']
             && d.id is string && key == d.type + '_' + d.id
             && (d.type != 'household' || d.id == hid)
             && d.householdId == hid
@@ -117,6 +118,8 @@ service cloud.firestore {
         allow create: if isMember(hid) && validEntity() && request.resource.data.version == 1;
         allow update: if isMember(hid) && validEntity()
           && request.resource.data.version == resource.data.version + 1
+          // Activity entries (who changed what) are written once and never edited.
+          && resource.data.type != 'activity'
           && request.resource.data.type == resource.data.type
           && request.resource.data.id == resource.data.id;
         allow delete: if false;

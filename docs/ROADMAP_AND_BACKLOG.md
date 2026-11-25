@@ -28,6 +28,7 @@ two-user shared data.
 ## Phase 4 --- Planning
 
 Savings; recurring; rollover; activity; reports; notifications.
+Status: built (savings goals, recurring items with confirm/skip, activity feed, yearly reports, daily reminders). Rollover was already part of budgets.
 
 ## Phase 5 --- Self-hosting
 

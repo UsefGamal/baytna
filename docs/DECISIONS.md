@@ -30,3 +30,16 @@
 | Sync triggers | WorkManager unique work after local writes (debounced 1 s), on app start and sign-in, network-constrained with exponential backoff; a 6-hour periodic job as backup; a realtime listener while the app runs. | Spec: periodic work is backup, not the only mechanism. |
 | Old outbox rows | Operations queued by milestone 1 lack `createdAt`/`sortOrder`; the engine fills them from the current row at upload. | Lossless upload without a schema migration. |
 | Room schema | Unchanged (still version 1). Conflict state uses the existing outbox `status` and `lastError` columns. | No migration risk for existing installs. |
+
+# Decisions for Phase 4 (planning)
+
+| Topic | Decision | Why |
+|---|---|---|
+| Savings goals | `savings_goals` plus `goal_contributions` (CONTRIBUTION or WITHDRAWAL). Progress is the sum of movements; the money stays in its account, so goals never change balances, cash flow or budgets. A withdrawal (or removing a contribution) cannot take the goal below zero. Pace and estimated completion come from the average saved per month since the first movement. | Invariants 7 and 8: savings are planning records and must not double-count. |
+| Recurring items | `recurring_rules` keep a start date, frequency (weekly, monthly, yearly, every N) and the oldest open occurrence (`nextDueDate`). Occurrences are computed from the start date, so the 31st falls on the last day of shorter months and comes back. Confirm posts a normal transaction (amount editable); Skip moves on without posting. Nothing is posted automatically. | Invariant 10 and the PRD: scheduled items are not transactions until confirmed. |
+| Double-posting | A confirmed occurrence uses the transaction id `rec_{ruleId}_{date}`. If both phones confirm the same occurrence offline, the second upload is a CREATE conflict, never a second transaction. | No duplicated money movement without a backend. |
+| Activity feed | Every local change writes an `activity_logs` row (actor, entity, action, kind, amount, label) in the same Room transaction as the change, and the row syncs like any other record. Rules let activity rows be created but never updated. Setting up a household or copying a month's budget logs one entry, not one per seeded row. | One place covers every write; the cloud keeps an append-only history of who changed what. |
+| Actor | The member chosen under "This phone belongs to" (set automatically once the phone is linked), falling back to the household's first member. | Same identity the rest of the app uses for "me". |
+| Reports | A yearly report screen (totals, month by month, categories, payers, savings) next to the existing monthly Insights. | Reuses the domain calculators; no new financial rules. |
+| Reminders | Opt-in daily WorkManager job at 9:00 Cairo time. Notifies recurring items due today, tomorrow or overdue, and budget lines at 90% or over. Each reminder is shown once. Computed on the phone; no push server. Android 13+ asks for the notification permission when turned on. | Works offline and on the free Firebase plan. |
+| Room schema | Version 2 with an explicit `MIGRATION_1_2` that only adds tables. A Robolectric test upgrades a version 1 file and lets Room validate the result. | No destructive migrations; existing installs keep their data. |

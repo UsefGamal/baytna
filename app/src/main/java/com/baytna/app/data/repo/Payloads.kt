@@ -1,6 +1,10 @@
 package com.baytna.app.data.repo
 
 import com.baytna.app.data.db.AccountEntity
+import com.baytna.app.data.db.ActivityEntity
+import com.baytna.app.data.db.GoalContributionEntity
+import com.baytna.app.data.db.RecurringRuleEntity
+import com.baytna.app.data.db.SavingsGoalEntity
 import com.baytna.app.data.db.BudgetAllocationEntity
 import com.baytna.app.data.db.BudgetEntity
 import com.baytna.app.data.db.CategoryEntity
@@ -61,5 +65,31 @@ internal object Payloads {
         "id" to a.id, "budgetId" to a.budgetId, "categoryId" to a.categoryId,
         "allocationType" to a.allocationType.name, "allocatedMinor" to a.allocatedMinor,
         "rolloverMinor" to a.rolloverMinor, "label" to a.label, "createdAt" to a.createdAt, "updatedAt" to a.updatedAt, "version" to a.version,
+    )
+
+    fun of(g: SavingsGoalEntity) = obj(
+        "id" to g.id, "householdId" to g.householdId, "name" to g.name, "targetMinor" to g.targetMinor,
+        "currency" to g.currency, "ownerUserId" to g.ownerUserId, "targetDate" to g.targetDate, "icon" to g.icon,
+        "createdAt" to g.createdAt, "updatedAt" to g.updatedAt, "version" to g.version, "deletedAt" to g.deletedAt,
+    )
+
+    fun of(c: GoalContributionEntity) = obj(
+        "id" to c.id, "householdId" to c.householdId, "goalId" to c.goalId, "type" to c.type.name,
+        "amountMinor" to c.amountMinor, "memberId" to c.memberId, "note" to c.note, "occurredAt" to c.occurredAt,
+        "createdAt" to c.createdAt, "updatedAt" to c.updatedAt, "version" to c.version, "deletedAt" to c.deletedAt,
+    )
+
+    fun of(r: RecurringRuleEntity) = obj(
+        "id" to r.id, "householdId" to r.householdId, "name" to r.name, "type" to r.type.name,
+        "amountMinor" to r.amountMinor, "accountId" to r.accountId, "categoryId" to r.categoryId,
+        "paidByUserId" to r.paidByUserId, "ownership" to r.ownership.name, "personalOwnerUserId" to r.personalOwnerUserId,
+        "frequency" to r.frequency.name, "interval" to r.interval, "startDate" to r.startDate, "nextDueDate" to r.nextDueDate,
+        "isActive" to r.isActive, "createdAt" to r.createdAt, "updatedAt" to r.updatedAt, "version" to r.version, "deletedAt" to r.deletedAt,
+    )
+
+    fun of(a: ActivityEntity) = obj(
+        "id" to a.id, "householdId" to a.householdId, "actorMemberId" to a.actorMemberId, "entityType" to a.entityType,
+        "entityId" to a.entityId, "action" to a.action, "detail" to a.detail, "amountMinor" to a.amountMinor,
+        "label" to a.label, "createdAt" to a.createdAt, "version" to a.version,
     )
 }

@@ -23,6 +23,10 @@ enum class ValidationError {
     HAS_ACTIVE_REFUNDS,
     /** A referenced account, category or member does not belong to this household or is inactive. */
     INVALID_REFERENCE,
+    /** A savings goal or recurring item needs a name. */
+    NAME_REQUIRED,
+    /** A goal withdrawal (or removing a contribution) would take out more than was saved. */
+    WITHDRAWAL_EXCEEDS_SAVED,
 }
 
 /** A command to create or update a transaction, before persistence. */

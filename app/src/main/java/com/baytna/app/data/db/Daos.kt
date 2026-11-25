@@ -30,6 +30,9 @@ interface MemberDao {
     @Query("SELECT * FROM household_members WHERE id = :id")
     suspend fun get(id: String): MemberEntity?
 
+    @Query("SELECT * FROM household_members WHERE householdId = :householdId AND status != 'REMOVED' ORDER BY joinedAt LIMIT 1")
+    suspend fun first(householdId: String): MemberEntity?
+
     @Insert
     suspend fun insert(member: MemberEntity)
 
@@ -129,6 +132,50 @@ interface BudgetDao {
 }
 
 @Dao
+interface PlanningDao {
+    @Query("SELECT * FROM savings_goals WHERE householdId = :householdId AND deletedAt IS NULL ORDER BY createdAt")
+    fun observeGoals(householdId: String): Flow<List<SavingsGoalEntity>>
+
+    @Query("SELECT * FROM savings_goals WHERE id = :id")
+    suspend fun getGoal(id: String): SavingsGoalEntity?
+
+    @Insert suspend fun insertGoal(goal: SavingsGoalEntity)
+    @Update suspend fun updateGoal(goal: SavingsGoalEntity)
+
+    @Query("SELECT * FROM goal_contributions WHERE householdId = :householdId AND deletedAt IS NULL ORDER BY occurredAt DESC, createdAt DESC")
+    fun observeContributions(householdId: String): Flow<List<GoalContributionEntity>>
+
+    @Query("SELECT * FROM goal_contributions WHERE goalId = :goalId AND deletedAt IS NULL")
+    suspend fun activeContributions(goalId: String): List<GoalContributionEntity>
+
+    @Query("SELECT * FROM goal_contributions WHERE id = :id")
+    suspend fun getContribution(id: String): GoalContributionEntity?
+
+    @Insert suspend fun insertContribution(row: GoalContributionEntity)
+    @Update suspend fun updateContribution(row: GoalContributionEntity)
+
+    @Query("SELECT * FROM recurring_rules WHERE householdId = :householdId AND deletedAt IS NULL ORDER BY isActive DESC, nextDueDate, createdAt")
+    fun observeRules(householdId: String): Flow<List<RecurringRuleEntity>>
+
+    @Query("SELECT * FROM recurring_rules WHERE householdId = :householdId AND deletedAt IS NULL AND isActive = 1 ORDER BY nextDueDate")
+    suspend fun activeRules(householdId: String): List<RecurringRuleEntity>
+
+    @Query("SELECT * FROM recurring_rules WHERE id = :id")
+    suspend fun getRule(id: String): RecurringRuleEntity?
+
+    @Insert suspend fun insertRule(rule: RecurringRuleEntity)
+    @Update suspend fun updateRule(rule: RecurringRuleEntity)
+
+    @Query("SELECT * FROM activity_logs WHERE householdId = :householdId ORDER BY createdAt DESC LIMIT :limit")
+    fun observeActivity(householdId: String, limit: Int): Flow<List<ActivityEntity>>
+
+    @Query("SELECT * FROM activity_logs WHERE id = :id")
+    suspend fun getActivity(id: String): ActivityEntity?
+
+    @Insert suspend fun insertActivity(row: ActivityEntity)
+}
+
+@Dao
 interface OutboxDao {
     @Insert
     suspend fun insert(op: SyncOutboxEntity)
@@ -150,6 +197,10 @@ interface SyncDao {
     @Upsert suspend fun upsertTransaction(row: TransactionEntity)
     @Upsert suspend fun upsertBudget(row: BudgetEntity)
     @Upsert suspend fun upsertAllocation(row: BudgetAllocationEntity)
+    @Upsert suspend fun upsertGoal(row: SavingsGoalEntity)
+    @Upsert suspend fun upsertContribution(row: GoalContributionEntity)
+    @Upsert suspend fun upsertRule(row: RecurringRuleEntity)
+    @Upsert suspend fun upsertActivity(row: ActivityEntity)
 
     @Query("SELECT version FROM households WHERE id = :id") suspend fun householdVersion(id: String): Int?
     @Query("SELECT version FROM household_members WHERE id = :id") suspend fun memberVersion(id: String): Int?
@@ -158,6 +209,10 @@ interface SyncDao {
     @Query("SELECT version FROM transactions WHERE id = :id") suspend fun transactionVersion(id: String): Int?
     @Query("SELECT version FROM budgets WHERE id = :id") suspend fun budgetVersion(id: String): Int?
     @Query("SELECT version FROM budget_allocations WHERE id = :id") suspend fun allocationVersion(id: String): Int?
+    @Query("SELECT version FROM savings_goals WHERE id = :id") suspend fun goalVersion(id: String): Int?
+    @Query("SELECT version FROM goal_contributions WHERE id = :id") suspend fun contributionVersion(id: String): Int?
+    @Query("SELECT version FROM recurring_rules WHERE id = :id") suspend fun ruleVersion(id: String): Int?
+    @Query("SELECT version FROM activity_logs WHERE id = :id") suspend fun activityVersion(id: String): Int?
 
     @Query("SELECT * FROM households WHERE id = :id") suspend fun household(id: String): HouseholdEntity?
 

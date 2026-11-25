@@ -139,6 +139,19 @@ describe('entities', () => {
     await assertFails(b3.commit());
   });
 
+  test('planning records sync like other records', async () => {
+    for (const [i, type] of ['savings_goal', 'goal_contribution', 'recurring_rule'].entries()) {
+      await assertSucceeds(pushOp(db('alice'), 'alice', `p${i}a`, { type, id: 'x1' }));
+      await assertSucceeds(pushOp(db('alice'), 'alice', `p${i}b`, { type, id: 'x1', version: 2 }));
+    }
+  });
+
+  test('activity entries can be created but never edited', async () => {
+    await assertSucceeds(pushOp(db('alice'), 'alice', 'a1', { type: 'activity', id: 'e1' }));
+    await assertFails(pushOp(db('alice'), 'alice', 'a2', { type: 'activity', id: 'e1', version: 2 }));
+    await assertFails(pushOp(db('mallory'), 'mallory', 'a3', { type: 'activity', id: 'e2' }));
+  });
+
   test('strangers cannot write records', async () => {
     await assertFails(pushOp(db('mallory'), 'mallory', 'op1'));
   });

@@ -1,6 +1,10 @@
 package com.baytna.app.data.sync
 
 import com.baytna.app.data.db.AccountEntity
+import com.baytna.app.data.db.ActivityEntity
+import com.baytna.app.data.db.GoalContributionEntity
+import com.baytna.app.data.db.RecurringRuleEntity
+import com.baytna.app.data.db.SavingsGoalEntity
 import com.baytna.app.data.db.BaytnaDatabase
 import com.baytna.app.data.db.BudgetAllocationEntity
 import com.baytna.app.data.db.BudgetEntity
@@ -18,6 +22,8 @@ import com.baytna.domain.model.CategoryType
 import com.baytna.domain.model.MemberRole
 import com.baytna.domain.model.Ownership
 import com.baytna.domain.model.TransactionType
+import com.baytna.domain.planning.ContributionType
+import com.baytna.domain.planning.Frequency
 import org.json.JSONObject
 
 /** Parses outbox/cloud payloads (written by [Payloads]) back into Room rows. */
@@ -29,9 +35,13 @@ internal object Records {
     const val TRANSACTION = "transaction"
     const val BUDGET = "budget"
     const val ALLOCATION = "budget_allocation"
+    const val GOAL = "savings_goal"
+    const val CONTRIBUTION = "goal_contribution"
+    const val RULE = "recurring_rule"
+    const val ACTIVITY = "activity"
 
     /** Parents before children, so foreign keys hold when a batch is applied. */
-    val APPLY_ORDER = listOf(HOUSEHOLD, MEMBER, ACCOUNT, CATEGORY, BUDGET, TRANSACTION, ALLOCATION)
+    val APPLY_ORDER = listOf(HOUSEHOLD, MEMBER, ACCOUNT, CATEGORY, BUDGET, TRANSACTION, ALLOCATION, GOAL, CONTRIBUTION, RULE, ACTIVITY)
 
     private fun JSONObject.str(k: String): String? = if (!has(k) || isNull(k)) null else getString(k)
     private fun JSONObject.long(k: String, fallback: Long): Long = if (!has(k) || isNull(k)) fallback else getLong(k)
@@ -91,6 +101,42 @@ internal object Records {
         createdAt = j.long("createdAt", j.getLong("updatedAt")), updatedAt = j.getLong("updatedAt"), version = j.getInt("version"),
     )
 
+    private fun JSONObject.intOrNull(k: String): Int? = if (!has(k) || isNull(k)) null else getInt(k)
+
+    fun goal(j: JSONObject) = SavingsGoalEntity(
+        id = j.getString("id"), householdId = j.getString("householdId"), name = j.getString("name"),
+        targetMinor = j.getLong("targetMinor"), currency = j.getString("currency"), ownerUserId = j.str("ownerUserId"),
+        targetDate = j.str("targetDate"), icon = j.optString("icon", "savings"),
+        createdAt = j.long("createdAt", j.getLong("updatedAt")), updatedAt = j.getLong("updatedAt"), version = j.getInt("version"),
+        deletedAt = j.longOrNull("deletedAt"),
+    )
+
+    fun contribution(j: JSONObject) = GoalContributionEntity(
+        id = j.getString("id"), householdId = j.getString("householdId"), goalId = j.getString("goalId"),
+        type = ContributionType.valueOf(j.getString("type")), amountMinor = j.getLong("amountMinor"),
+        memberId = j.getString("memberId"), note = j.optString("note", ""), occurredAt = j.getLong("occurredAt"),
+        createdAt = j.long("createdAt", j.getLong("updatedAt")), updatedAt = j.getLong("updatedAt"), version = j.getInt("version"),
+        deletedAt = j.longOrNull("deletedAt"),
+    )
+
+    fun rule(j: JSONObject) = RecurringRuleEntity(
+        id = j.getString("id"), householdId = j.getString("householdId"), name = j.getString("name"),
+        type = TransactionType.valueOf(j.getString("type")), amountMinor = j.getLong("amountMinor"),
+        accountId = j.getString("accountId"), categoryId = j.str("categoryId"), paidByUserId = j.getString("paidByUserId"),
+        ownership = Ownership.valueOf(j.getString("ownership")), personalOwnerUserId = j.str("personalOwnerUserId"),
+        frequency = Frequency.valueOf(j.getString("frequency")), interval = j.intOrNull("interval") ?: 1,
+        startDate = j.getString("startDate"), nextDueDate = j.getString("nextDueDate"), isActive = j.getBoolean("isActive"),
+        createdAt = j.long("createdAt", j.getLong("updatedAt")), updatedAt = j.getLong("updatedAt"), version = j.getInt("version"),
+        deletedAt = j.longOrNull("deletedAt"),
+    )
+
+    fun activity(j: JSONObject) = ActivityEntity(
+        id = j.getString("id"), householdId = j.getString("householdId"), actorMemberId = j.str("actorMemberId"),
+        entityType = j.getString("entityType"), entityId = j.getString("entityId"), action = j.getString("action"),
+        detail = j.str("detail"), amountMinor = j.longOrNull("amountMinor"), label = j.str("label"),
+        createdAt = j.getLong("createdAt"), version = j.getInt("version"),
+    )
+
     /** The current local row as a payload, or null if it does not exist (for example a deleted allocation). */
     suspend fun currentPayload(db: BaytnaDatabase, type: String, id: String): String? = when (type) {
         HOUSEHOLD -> db.syncDao().household(id)?.let(Payloads::of)
@@ -100,6 +146,10 @@ internal object Records {
         TRANSACTION -> db.transactionDao().get(id)?.let(Payloads::of)
         BUDGET -> db.budgetDao().get(id)?.let(Payloads::of)
         ALLOCATION -> db.budgetDao().getAllocation(id)?.let(Payloads::of)
+        GOAL -> db.planningDao().getGoal(id)?.let(Payloads::of)
+        CONTRIBUTION -> db.planningDao().getContribution(id)?.let(Payloads::of)
+        RULE -> db.planningDao().getRule(id)?.let(Payloads::of)
+        ACTIVITY -> db.planningDao().getActivity(id)?.let(Payloads::of)
         else -> null
     }
 
@@ -113,6 +163,10 @@ internal object Records {
             TRANSACTION -> dao.transactionVersion(id)
             BUDGET -> dao.budgetVersion(id)
             ALLOCATION -> dao.allocationVersion(id)
+            GOAL -> dao.goalVersion(id)
+            CONTRIBUTION -> dao.contributionVersion(id)
+            RULE -> dao.ruleVersion(id)
+            ACTIVITY -> dao.activityVersion(id)
             else -> null
         }
     }

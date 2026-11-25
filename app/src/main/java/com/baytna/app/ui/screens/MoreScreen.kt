@@ -9,6 +9,10 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.AccountBalanceWallet
+import androidx.compose.material.icons.filled.Assessment
+import androidx.compose.material.icons.filled.Autorenew
+import androidx.compose.material.icons.filled.History
+import androidx.compose.material.icons.filled.Savings
 import androidx.compose.material.icons.filled.Category
 import androidx.compose.material.icons.filled.Cloud
 import androidx.compose.material.icons.filled.FileDownload
@@ -19,7 +23,10 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.ListItem
 import androidx.compose.material3.ListItemDefaults
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
+import androidx.compose.foundation.layout.Row
+import androidx.compose.ui.Alignment
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Modifier
@@ -67,6 +74,11 @@ fun MoreScreen(vm: MainViewModel, state: AppState.Ready, nav: NavController) {
         }
     }
 
+    val permissionLauncher = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
+        vm.setReminders(granted)
+        if (!granted) Toast.makeText(context, R.string.reminders_denied, Toast.LENGTH_LONG).show()
+    }
+
     LazyColumn(contentPadding = PaddingValues(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
         item {
             SectionCard(title = stringResource(R.string.sync_status)) {
@@ -91,6 +103,28 @@ fun MoreScreen(vm: MainViewModel, state: AppState.Ready, nav: NavController) {
                 }
                 Text(stringResource(R.string.this_phone_hint), style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
+        }
+        item {
+            SectionCard(title = stringResource(R.string.planning)) {
+                NavRow(Icons.Filled.Savings, stringResource(R.string.savings_goals)) { nav.navigate("savings") }
+                NavRow(Icons.Filled.Autorenew, stringResource(R.string.recurring)) { nav.navigate("recurring") }
+                NavRow(Icons.Filled.Assessment, stringResource(R.string.reports)) { nav.navigate("reports") }
+                NavRow(Icons.Filled.History, stringResource(R.string.activity)) { nav.navigate("activity") }
+            }
+        }
+        item {
+            SectionCard(title = stringResource(R.string.reminders)) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(stringResource(R.string.reminders_hint), style = MaterialTheme.typography.bodyMedium, modifier = Modifier.weight(1f))
+                    Switch(state.settings.remindersEnabled, { on ->
+                        if (on && android.os.Build.VERSION.SDK_INT >= 33 && !vm.container.reminders.hasPermission()) {
+                            permissionLauncher.launch(android.Manifest.permission.POST_NOTIFICATIONS)
+                        } else {
+                            vm.setReminders(on)
+                        }
+                    })
+                }
             }
         }
         item {

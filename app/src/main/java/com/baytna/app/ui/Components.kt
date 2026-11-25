@@ -211,4 +211,6 @@ fun validationRes(e: ValidationError): Int = when (e) {
     ValidationError.REFUND_EXCEEDS_ORIGINAL -> R.string.err_refund_cap
     ValidationError.HAS_ACTIVE_REFUNDS -> R.string.err_has_refunds
     ValidationError.INVALID_REFERENCE -> R.string.err_reference
+    ValidationError.NAME_REQUIRED -> R.string.err_name
+    ValidationError.WITHDRAWAL_EXCEEDS_SAVED -> R.string.err_withdrawal
 }

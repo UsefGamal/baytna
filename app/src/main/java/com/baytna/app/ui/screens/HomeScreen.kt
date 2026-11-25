@@ -24,7 +24,9 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
@@ -64,6 +66,11 @@ fun HomeScreen(vm: MainViewModel, state: AppState.Ready, nav: NavController) {
     val byCategory = remember(monthLedger) { CashFlowCalculator.spendingByCategory(monthLedger) }
     val recent = remember(snapshot, period) { snapshot.active.filter { period.contains(it.occurredAt) }.take(5) }
     val finance = LocalFinanceColors.current
+    val planning by vm.planning.collectAsStateWithLifecycle()
+    val today = java.time.LocalDate.now(com.baytna.domain.time.CAIRO)
+    val due = remember(planning, today) { planning.dueBy(today.plusDays(3)) }
+    var confirming by remember { mutableStateOf<com.baytna.app.data.db.RecurringRuleEntity?>(null) }
+    confirming?.let { r -> ConfirmOccurrenceDialog(vm, state, r) { confirming = null } }
 
     LazyColumn(contentPadding = androidx.compose.foundation.layout.PaddingValues(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
         item {
@@ -75,6 +82,16 @@ fun HomeScreen(vm: MainViewModel, state: AppState.Ready, nav: NavController) {
                 }
                 SyncChip(state.pendingSync, linked = state.settings.linkedHouseholdId == state.snapshot.household.id)
             }
+        }
+        if (due.isNotEmpty()) {
+            item {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(stringResource(R.string.due_soon), style = MaterialTheme.typography.titleSmall,
+                        color = MaterialTheme.colorScheme.primary, modifier = Modifier.weight(1f))
+                    androidx.compose.material3.TextButton(onClick = { nav.navigate("recurring") }) { Text(stringResource(R.string.see_all)) }
+                }
+            }
+            items(due.take(3), key = { "due_" + it.id }) { r -> DueRow(vm, r, today) { confirming = r } }
         }
         item { MonthSelector(month, vm::setMonth) }
         item {

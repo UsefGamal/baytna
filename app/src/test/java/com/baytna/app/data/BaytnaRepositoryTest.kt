@@ -80,8 +80,10 @@ class BaytnaRepositoryTest {
         assertEquals(2, s.accounts.size)
         assertEquals(15, s.categories.size)
         assertEquals(Money(11_000_00), s.totalBalance)
-        // household + 2 members + 2 accounts + 15 categories
-        assertEquals(20, db.outboxDao().getAll().size)
+        // household + 2 members + 2 accounts + 15 categories, plus one activity entry for the setup
+        val ops = db.outboxDao().getAll()
+        assertEquals(20, ops.count { it.entityType != "activity" })
+        assertEquals(1, ops.count { it.entityType == "activity" })
     }
 
     @Test fun everyMutationWritesExactlyOneOutboxRow() = runTest {
@@ -91,7 +93,10 @@ class BaytnaRepositoryTest {
         val tx = repo.getTransaction(id)!!
         repo.softDeleteTransaction(id, tx.version)
         repo.restoreTransaction(id, tx.version + 1)
-        val ops = db.outboxDao().getAll().drop(before)
+        val all = db.outboxDao().getAll().drop(before)
+        // Each change also logs who made it, as a separate activity record.
+        assertEquals(3, all.count { it.entityType == "activity" })
+        val ops = all.filter { it.entityType != "activity" }
         assertEquals(listOf("CREATE", "DELETE", "UPDATE"), ops.map { it.operation })
         assertTrue(ops.all { it.entityId == id && it.entityType == "transaction" })
         assertEquals(listOf(null, 1, 2), ops.map { it.expectedVersion })

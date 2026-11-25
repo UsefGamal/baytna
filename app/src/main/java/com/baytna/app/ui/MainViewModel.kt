@@ -3,7 +3,16 @@ package com.baytna.app.ui
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.baytna.app.AppContainer
+import com.baytna.app.data.db.ActivityEntity
 import com.baytna.app.data.db.BudgetAllocationEntity
+import com.baytna.app.data.db.GoalContributionEntity
+import com.baytna.app.data.db.RecurringRuleEntity
+import com.baytna.app.data.db.SavingsGoalEntity
+import com.baytna.app.data.repo.toMovement
+import com.baytna.domain.money.Money
+import com.baytna.domain.planning.GoalProgress
+import com.baytna.domain.planning.SavingsMath
+import java.time.LocalDate
 import com.baytna.app.data.db.BudgetEntity
 import com.baytna.app.data.db.MemberEntity
 import com.baytna.app.data.prefs.Settings
@@ -31,6 +40,26 @@ sealed interface AppState {
         val me: MemberEntity,
         val pendingSync: Int,
     ) : AppState
+}
+
+data class PlanningState(
+    val goals: List<SavingsGoalEntity> = emptyList(),
+    val contributions: List<GoalContributionEntity> = emptyList(),
+    val rules: List<RecurringRuleEntity> = emptyList(),
+    val activity: List<ActivityEntity> = emptyList(),
+) {
+    val contributionsByGoal: Map<String, List<GoalContributionEntity>> by lazy { contributions.groupBy { it.goalId } }
+
+    fun progress(goal: SavingsGoalEntity, today: LocalDate): GoalProgress = SavingsMath.progress(
+        Money(goal.targetMinor),
+        contributionsByGoal[goal.id].orEmpty().map { it.toMovement() },
+        today,
+        goal.targetDate?.let { runCatching { LocalDate.parse(it) }.getOrNull() },
+    )
+
+    /** Active rules with an open occurrence on or before [until]. */
+    fun dueBy(until: LocalDate): List<RecurringRuleEntity> =
+        rules.filter { it.isActive && !LocalDate.parse(it.nextDueDate).isAfter(until) }
 }
 
 data class BudgetState(val budget: BudgetEntity, val allocations: List<BudgetAllocationEntity>)
@@ -65,6 +94,25 @@ class MainViewModel(val container: AppContainer) : ViewModel() {
             }
         }
         .stateIn(viewModelScope, SharingStarted.Eagerly, null)
+
+    val planning: StateFlow<PlanningState> = repo.observeHousehold()
+        .flatMapLatest { h ->
+            if (h == null) flowOf(PlanningState())
+            else combine(
+                repo.observeGoals(h.id),
+                repo.observeContributions(h.id),
+                repo.observeRecurring(h.id),
+                repo.observeActivity(h.id),
+            ) { g, c, r, a -> PlanningState(g, c, r, a) }
+        }
+        .stateIn(viewModelScope, SharingStarted.Eagerly, PlanningState())
+
+    /** Turns daily reminders on or off; when turning on, shows anything already due right away. */
+    fun setReminders(enabled: Boolean) = viewModelScope.launch {
+        container.settings.setRemindersEnabled(enabled)
+        container.reminders.schedule(enabled)
+        if (enabled) runCatching { container.reminders.run() }
+    }
 
     fun setMonth(m: YearMonth) {
         container.selectedMonth.value = m

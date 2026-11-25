@@ -72,7 +72,7 @@ import com.baytna.domain.money.MoneyParser
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun SubScreen(title: String, nav: NavController, actions: @Composable () -> Unit = {}, content: @Composable () -> Unit) {
+internal fun SubScreen(title: String, nav: NavController, actions: @Composable () -> Unit = {}, content: @Composable () -> Unit) {
     Column(Modifier.fillMaxSize()) {
         TopAppBar(
             title = { Text(title) },

@@ -12,6 +12,11 @@ import com.baytna.app.data.repo.AccountSetup
 import com.baytna.app.data.repo.BaytnaRepository
 import com.baytna.app.data.repo.HouseholdSetup
 import com.baytna.app.data.repo.HouseholdSnapshot
+import com.baytna.app.data.repo.RecurringInput
+import com.baytna.app.data.repo.recurringTransactionId
+import com.baytna.domain.planning.ContributionType
+import com.baytna.domain.planning.Frequency
+import java.time.LocalDate
 import com.baytna.app.data.repo.TransactionInput
 import com.baytna.domain.model.AccountType
 import com.baytna.domain.model.AllocationType
@@ -23,6 +28,7 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.runTest
 import org.junit.After
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Assert.fail
@@ -44,7 +50,8 @@ class SyncEngineTest {
 
     private class Phone(context: Context, cloud: FakeCloud, val uid: String) {
         val db: BaytnaDatabase = Room.inMemoryDatabaseBuilder(context, BaytnaDatabase::class.java).allowMainThreadQueries().build()
-        val repo = BaytnaRepository(db)
+        var actorId: String? = null
+        val repo = BaytnaRepository(db, actor = { actorId })
         val engine = SyncEngine(db, cloud)
         suspend fun snapshot(): HouseholdSnapshot = repo.observeSnapshot().first()!!
         suspend fun outbox(): List<SyncOutboxEntity> = db.outboxDao().getAll()
@@ -184,11 +191,11 @@ class SyncEngineTest {
     @Test fun retryAfterLostAcknowledgementDoesNotDuplicate() = runTest {
         val s = shareHousehold()
         val id = a.repo.saveTransaction(expense(s, 50_00, s.owner))
-        val op = a.outbox().single()
+        val op = a.outbox().single { it.entityType == "transaction" }
         // The upload reached the cloud but the phone never saw the reply.
         assertEquals(PushResult.Applied, cloud.push("alice", op, op.payload))
         val summary = a.engine.sync("alice", s.householdId)
-        assertEquals(1, summary.pushed)
+        assertEquals(2, summary.pushed) // the transaction (already applied) and its activity entry
         assertEquals(0, summary.conflicts)
         assertTrue(a.outbox().isEmpty())
         assertEquals(1, cloud.record(s.householdId, "transaction", id)!!.version)
@@ -231,6 +238,55 @@ class SyncEngineTest {
         val start = month.atDay(1).toString()
         assertEquals(winner, a.db.budgetDao().getMonthly(s.householdId, start)!!.id)
         assertEquals(winner, b.db.budgetDao().getMonthly(s.householdId, start)!!.id)
+    }
+
+    private fun rent(s: Shared) = RecurringInput(
+        name = "Rent", type = TransactionType.EXPENSE, amount = Money(8_000_00), accountId = s.cash, categoryId = s.groceries,
+        paidByUserId = s.owner, ownership = Ownership.SHARED, personalOwnerUserId = null, frequency = Frequency.MONTHLY,
+        interval = 1, startDate = LocalDate.of(2026, 11, 1),
+    )
+
+    @Test fun planningRecordsAndActivitySync() = runTest {
+        val s = shareHousehold()
+        b.actorId = s.partner
+        val goal = a.repo.saveGoal(s.householdId, null, null, "Trip", 10_000_00, null, null)
+        a.repo.addGoalMovement(goal, ContributionType.CONTRIBUTION, Money(2_000_00), s.owner, "", midMonth)
+        val rule = a.repo.saveRecurring(rent(s))
+        a.engine.sync("alice", s.householdId)
+        b.engine.sync("bob", s.householdId)
+        assertEquals(1, b.db.planningDao().activeContributions(goal).size)
+        assertEquals("Rent", b.db.planningDao().getRule(rule)!!.name)
+
+        b.repo.addGoalMovement(goal, ContributionType.WITHDRAWAL, Money(500_00), s.partner, "", midMonth)
+        b.engine.sync("bob", s.householdId)
+        a.engine.sync("alice", s.householdId)
+        assertEquals(2, a.db.planningDao().activeContributions(goal).size)
+        val feed = a.repo.observeActivity(s.householdId).first()
+        assertTrue(feed.any { it.actorMemberId == s.partner && it.entityType == "goal_contribution" && it.detail == "WITHDRAWAL" })
+        assertTrue(feed.any { it.actorMemberId == s.owner && it.entityType == "recurring_rule" && it.label == "Rent" })
+        assertEquals(feed.map { it.id }.toSet(), b.repo.observeActivity(s.householdId).first().map { it.id }.toSet())
+    }
+
+    @Test fun recurringConfirmedOnBothPhonesPostsOnce() = runTest {
+        val s = shareHousehold()
+        val rule = a.repo.saveRecurring(rent(s))
+        a.engine.sync("alice", s.householdId)
+        b.engine.sync("bob", s.householdId)
+
+        a.repo.confirmRecurring(rule, 1, null, s.owner)
+        b.repo.confirmRecurring(rule, 1, null, s.partner)
+        a.engine.sync("alice", s.householdId)
+        val summary = b.engine.sync("bob", s.householdId)
+        assertEquals(2, summary.conflicts) // the occurrence and the rule; no second transaction is created
+
+        val txId = recurringTransactionId(rule, LocalDate.of(2026, 11, 1))
+        assertNotNull(cloud.record(s.householdId, "transaction", txId))
+        b.engine.useTheirs(s.householdId, "transaction", txId)
+        b.engine.useTheirs(s.householdId, "recurring_rule", rule)
+        b.engine.sync("bob", s.householdId)
+        assertEquals(1, b.snapshot().active.count { it.note == "Rent" })
+        assertEquals("2026-12-01", b.db.planningDao().getRule(rule)!!.nextDueDate)
+        assertTrue(b.db.syncDao().blocked(s.householdId).isEmpty())
     }
 
     @Test fun strangersCannotSync() = runTest {

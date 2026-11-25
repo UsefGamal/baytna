@@ -14,10 +14,14 @@ import androidx.room.RoomDatabase
         TransactionEntity::class,
         BudgetEntity::class,
         BudgetAllocationEntity::class,
+        SavingsGoalEntity::class,
+        GoalContributionEntity::class,
+        RecurringRuleEntity::class,
+        ActivityEntity::class,
         SyncOutboxEntity::class,
         SyncCursorEntity::class,
     ],
-    version = 1,
+    version = 2,
     exportSchema = true,
 )
 abstract class BaytnaDatabase : RoomDatabase() {
@@ -27,6 +31,7 @@ abstract class BaytnaDatabase : RoomDatabase() {
     abstract fun categoryDao(): CategoryDao
     abstract fun transactionDao(): TransactionDao
     abstract fun budgetDao(): BudgetDao
+    abstract fun planningDao(): PlanningDao
     abstract fun outboxDao(): OutboxDao
     abstract fun syncDao(): SyncDao
 
@@ -35,6 +40,6 @@ abstract class BaytnaDatabase : RoomDatabase() {
 
         /** Never use destructive migrations: future schema versions must ship explicit Migration objects. */
         fun build(context: Context): BaytnaDatabase =
-            Room.databaseBuilder(context, BaytnaDatabase::class.java, NAME).build()
+            Room.databaseBuilder(context, BaytnaDatabase::class.java, NAME).addMigrations(*ALL_MIGRATIONS).build()
     }
 }

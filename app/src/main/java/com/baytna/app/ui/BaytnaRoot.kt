@@ -43,6 +43,11 @@ import androidx.navigation.navArgument
 import com.baytna.app.AppContainer
 import com.baytna.app.R
 import com.baytna.app.ui.screens.AccountDetailScreen
+import com.baytna.app.ui.screens.ActivityScreen
+import com.baytna.app.ui.screens.GoalDetailScreen
+import com.baytna.app.ui.screens.RecurringScreen
+import com.baytna.app.ui.screens.ReportsScreen
+import com.baytna.app.ui.screens.SavingsScreen
 import com.baytna.app.ui.screens.AccountsScreen
 import com.baytna.app.ui.screens.BudgetsScreen
 import com.baytna.app.ui.screens.CategoriesScreen
@@ -147,6 +152,11 @@ private fun MainScaffold(vm: MainViewModel, state: AppState.Ready) {
             composable("account/{id}") { entry -> AccountDetailScreen(vm, state, entry.arguments?.getString("id") ?: "", nav) }
             composable("categories") { CategoriesScreen(vm, state, nav) }
             composable("members") { MembersScreen(vm, state, nav) }
+            composable("savings") { SavingsScreen(vm, state, nav) }
+            composable("goal/{id}") { entry -> GoalDetailScreen(vm, state, entry.arguments?.getString("id") ?: "", nav) }
+            composable("recurring") { RecurringScreen(vm, state, nav) }
+            composable("activity") { ActivityScreen(vm, state, nav) }
+            composable("reports") { ReportsScreen(vm, state, nav) }
             composable("cloud") {
                 val cloudVm: CloudViewModel = viewModel(factory = viewModelFactory { initializer { CloudViewModel(vm.container) } })
                 CloudScreen(cloudVm, state.snapshot.household, state.snapshot.members, state.me.id, state.pendingSync) { nav.popBackStack() }

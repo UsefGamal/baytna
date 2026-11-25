@@ -70,13 +70,17 @@ class SyncManager(
         val auth = auth ?: return
         val backend = backend ?: return
         scope.launch {
+            var scheduled = false
             combine(auth.user, settings.settings.map { it.linkedHouseholdId }) { u, h -> if (u != null && h != null) u.uid to h else null }
                 .distinctUntilChanged()
                 .collectLatest { session ->
                     if (session == null) {
-                        WorkManager.getInstance(context).cancelUniqueWork(PERIODIC_WORK)
+                        // Only touch WorkManager once sync was actually active in this process.
+                        if (scheduled) WorkManager.getInstance(context).cancelUniqueWork(PERIODIC_WORK)
+                        scheduled = false
                         return@collectLatest
                     }
+                    scheduled = true
                     schedulePeriodic()
                     requestSync()
                     val listener = backend.listen(session.second) { scope.launch { runSync() } }

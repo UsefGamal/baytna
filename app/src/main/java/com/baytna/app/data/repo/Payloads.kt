@@ -9,7 +9,7 @@ import com.baytna.app.data.db.MemberEntity
 import com.baytna.app.data.db.TransactionEntity
 import org.json.JSONObject
 
-/** Serialized row snapshots stored in the outbox for the future sync worker. */
+/** Serialized row snapshots stored in the outbox and uploaded by the sync engine. Parsed back by `Records`. */
 internal object Payloads {
     private fun obj(vararg pairs: Pair<String, Any?>): String {
         val o = JSONObject()
@@ -30,13 +30,14 @@ internal object Payloads {
     fun of(a: AccountEntity) = obj(
         "id" to a.id, "householdId" to a.householdId, "name" to a.name, "type" to a.type.name,
         "currency" to a.currency, "openingBalanceMinor" to a.openingBalanceMinor, "ownerUserId" to a.ownerUserId,
-        "isShared" to a.isShared, "isActive" to a.isActive, "updatedAt" to a.updatedAt, "version" to a.version,
+        "isShared" to a.isShared, "isActive" to a.isActive, "createdAt" to a.createdAt, "updatedAt" to a.updatedAt, "version" to a.version,
     )
 
     fun of(c: CategoryEntity) = obj(
         "id" to c.id, "householdId" to c.householdId, "parentId" to c.parentId, "name" to c.name,
         "systemKey" to c.systemKey, "icon" to c.icon, "color" to c.color, "type" to c.type.name,
-        "isSystem" to c.isSystem, "isActive" to c.isActive, "updatedAt" to c.updatedAt, "version" to c.version,
+        "isSystem" to c.isSystem, "isActive" to c.isActive, "sortOrder" to c.sortOrder,
+        "createdAt" to c.createdAt, "updatedAt" to c.updatedAt, "version" to c.version,
     )
 
     fun of(t: TransactionEntity) = obj(
@@ -53,12 +54,12 @@ internal object Payloads {
         "id" to b.id, "householdId" to b.householdId, "name" to b.name, "mode" to b.mode,
         "periodType" to b.periodType.name, "startDate" to b.startDate, "endDate" to b.endDate,
         "rolloverEnabled" to b.rolloverEnabled, "status" to b.status, "planningIncomeMinor" to b.planningIncomeMinor,
-        "updatedAt" to b.updatedAt, "version" to b.version,
+        "createdAt" to b.createdAt, "updatedAt" to b.updatedAt, "version" to b.version,
     )
 
     fun of(a: BudgetAllocationEntity) = obj(
         "id" to a.id, "budgetId" to a.budgetId, "categoryId" to a.categoryId,
         "allocationType" to a.allocationType.name, "allocatedMinor" to a.allocatedMinor,
-        "rolloverMinor" to a.rolloverMinor, "label" to a.label, "updatedAt" to a.updatedAt, "version" to a.version,
+        "rolloverMinor" to a.rolloverMinor, "label" to a.label, "createdAt" to a.createdAt, "updatedAt" to a.updatedAt, "version" to a.version,
     )
 }

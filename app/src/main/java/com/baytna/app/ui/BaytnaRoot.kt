@@ -46,6 +46,7 @@ import com.baytna.app.ui.screens.AccountDetailScreen
 import com.baytna.app.ui.screens.AccountsScreen
 import com.baytna.app.ui.screens.BudgetsScreen
 import com.baytna.app.ui.screens.CategoriesScreen
+import com.baytna.app.ui.screens.CloudScreen
 import com.baytna.app.ui.screens.HomeScreen
 import com.baytna.app.ui.screens.InsightsScreen
 import com.baytna.app.ui.screens.MembersScreen
@@ -146,6 +147,10 @@ private fun MainScaffold(vm: MainViewModel, state: AppState.Ready) {
             composable("account/{id}") { entry -> AccountDetailScreen(vm, state, entry.arguments?.getString("id") ?: "", nav) }
             composable("categories") { CategoriesScreen(vm, state, nav) }
             composable("members") { MembersScreen(vm, state, nav) }
+            composable("cloud") {
+                val cloudVm: CloudViewModel = viewModel(factory = viewModelFactory { initializer { CloudViewModel(vm.container) } })
+                CloudScreen(cloudVm, state.snapshot.household, state.snapshot.members, state.me.id, state.pendingSync) { nav.popBackStack() }
+            }
         }
     }
 }

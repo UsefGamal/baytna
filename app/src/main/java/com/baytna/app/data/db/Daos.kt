@@ -4,6 +4,7 @@ import androidx.room.Dao
 import androidx.room.Insert
 import androidx.room.Query
 import androidx.room.Update
+import androidx.room.Upsert
 import kotlinx.coroutines.flow.Flow
 
 @Dao
@@ -137,4 +138,61 @@ interface OutboxDao {
 
     @Query("SELECT * FROM sync_outbox ORDER BY createdAt")
     suspend fun getAll(): List<SyncOutboxEntity>
+}
+
+/** Queries used only by the sync engine: upserts of remote rows, outbox bookkeeping and cursors. */
+@Dao
+interface SyncDao {
+    @Upsert suspend fun upsertHousehold(row: HouseholdEntity)
+    @Upsert suspend fun upsertMember(row: MemberEntity)
+    @Upsert suspend fun upsertAccount(row: AccountEntity)
+    @Upsert suspend fun upsertCategory(row: CategoryEntity)
+    @Upsert suspend fun upsertTransaction(row: TransactionEntity)
+    @Upsert suspend fun upsertBudget(row: BudgetEntity)
+    @Upsert suspend fun upsertAllocation(row: BudgetAllocationEntity)
+
+    @Query("SELECT version FROM households WHERE id = :id") suspend fun householdVersion(id: String): Int?
+    @Query("SELECT version FROM household_members WHERE id = :id") suspend fun memberVersion(id: String): Int?
+    @Query("SELECT version FROM accounts WHERE id = :id") suspend fun accountVersion(id: String): Int?
+    @Query("SELECT version FROM categories WHERE id = :id") suspend fun categoryVersion(id: String): Int?
+    @Query("SELECT version FROM transactions WHERE id = :id") suspend fun transactionVersion(id: String): Int?
+    @Query("SELECT version FROM budgets WHERE id = :id") suspend fun budgetVersion(id: String): Int?
+    @Query("SELECT version FROM budget_allocations WHERE id = :id") suspend fun allocationVersion(id: String): Int?
+
+    @Query("SELECT * FROM households WHERE id = :id") suspend fun household(id: String): HouseholdEntity?
+
+    @Query("SELECT * FROM budgets WHERE householdId = :householdId AND periodType = :periodType AND startDate = :startDate LIMIT 1")
+    suspend fun budgetByPeriod(householdId: String, periodType: String, startDate: String): BudgetEntity?
+
+    @Query("SELECT id FROM budget_allocations WHERE budgetId = :budgetId") suspend fun allocationIds(budgetId: String): List<String>
+
+    @Query("DELETE FROM budgets WHERE id = :id") suspend fun deleteBudget(id: String)
+    @Query("DELETE FROM budget_allocations WHERE id = :id") suspend fun deleteAllocation(id: String)
+
+    @Query("UPDATE transactions SET syncState = :state WHERE id = :id") suspend fun setTransactionState(id: String, state: String)
+
+    @Query("SELECT * FROM sync_outbox WHERE householdId = :householdId AND status = 'PENDING' ORDER BY createdAt, rowid")
+    suspend fun pending(householdId: String): List<SyncOutboxEntity>
+
+    @Query("SELECT * FROM sync_outbox WHERE householdId = :householdId AND status != 'PENDING' ORDER BY createdAt, rowid")
+    suspend fun blocked(householdId: String): List<SyncOutboxEntity>
+
+    @Query("SELECT * FROM sync_outbox WHERE status != 'PENDING' ORDER BY createdAt")
+    fun observeIssues(): Flow<List<SyncOutboxEntity>>
+
+    @Query("SELECT COUNT(*) FROM sync_outbox WHERE entityType = :type AND entityId = :id")
+    suspend fun opsFor(type: String, id: String): Int
+
+    @Query("DELETE FROM sync_outbox WHERE operationId = :operationId") suspend fun ack(operationId: String)
+    @Query("DELETE FROM sync_outbox WHERE entityType = :type AND entityId = :id") suspend fun dropOpsFor(type: String, id: String)
+
+    @Query("UPDATE sync_outbox SET status = :status, attempts = attempts + 1, lastError = :error WHERE operationId = :operationId")
+    suspend fun markOp(operationId: String, status: String, error: String?)
+
+    @Insert suspend fun insertOp(op: SyncOutboxEntity)
+
+    @Query("SELECT * FROM sync_cursors WHERE householdId = :householdId AND provider = :provider")
+    suspend fun cursor(householdId: String, provider: String): SyncCursorEntity?
+
+    @Upsert suspend fun upsertCursor(cursor: SyncCursorEntity)
 }

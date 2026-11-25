@@ -10,6 +10,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.AccountBalanceWallet
 import androidx.compose.material.icons.filled.Category
+import androidx.compose.material.icons.filled.Cloud
 import androidx.compose.material.icons.filled.FileDownload
 import androidx.compose.material.icons.filled.Group
 import androidx.compose.material.icons.filled.SwapHoriz
@@ -69,7 +70,16 @@ fun MoreScreen(vm: MainViewModel, state: AppState.Ready, nav: NavController) {
     LazyColumn(contentPadding = PaddingValues(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
         item {
             SectionCard(title = stringResource(R.string.sync_status)) {
-                Text(stringResource(R.string.sync_explainer, state.pendingSync), style = MaterialTheme.typography.bodyMedium)
+                val linked = state.settings.linkedHouseholdId == state.snapshot.household.id
+                Text(
+                    when {
+                        !linked -> stringResource(R.string.sync_off, state.pendingSync)
+                        state.pendingSync > 0 -> stringResource(R.string.sync_waiting, state.pendingSync)
+                        else -> stringResource(R.string.sync_up_to_date)
+                    },
+                    style = MaterialTheme.typography.bodyMedium,
+                )
+                NavRow(Icons.Filled.Cloud, stringResource(R.string.cloud_title)) { nav.navigate("cloud") }
             }
         }
         item {

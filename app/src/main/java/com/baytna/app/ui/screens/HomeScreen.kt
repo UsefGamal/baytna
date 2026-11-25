@@ -13,7 +13,9 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.CloudDone
 import androidx.compose.material.icons.filled.CloudOff
+import androidx.compose.material.icons.filled.CloudUpload
 import androidx.compose.material.icons.filled.PhoneAndroid
 import androidx.compose.material3.AssistChip
 import androidx.compose.material3.Icon
@@ -71,7 +73,7 @@ fun HomeScreen(vm: MainViewModel, state: AppState.Ready, nav: NavController) {
                     Text(stringResource(R.string.hello_member, state.me.displayName), style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
-                SyncChip(state.pendingSync)
+                SyncChip(state.pendingSync, linked = state.settings.linkedHouseholdId == state.snapshot.household.id)
             }
         }
         item { MonthSelector(month, vm::setMonth) }
@@ -152,13 +154,28 @@ fun HomeScreen(vm: MainViewModel, state: AppState.Ready, nav: NavController) {
 }
 
 @Composable
-fun SyncChip(pending: Int) {
+fun SyncChip(pending: Int, linked: Boolean) {
     AssistChip(
         onClick = {},
         label = {
-            Text(if (pending > 0) stringResource(R.string.sync_local_pending, pending) else stringResource(R.string.sync_local_only))
+            Text(
+                when {
+                    linked && pending > 0 -> stringResource(R.string.sync_on_pending, pending)
+                    linked -> stringResource(R.string.sync_on_short)
+                    pending > 0 -> stringResource(R.string.sync_local_pending, pending)
+                    else -> stringResource(R.string.sync_local_only)
+                },
+            )
         },
-        leadingIcon = { Icon(if (pending > 0) Icons.Filled.CloudOff else Icons.Filled.PhoneAndroid, null, Modifier.size(18.dp)) },
+        leadingIcon = {
+            val icon = when {
+                linked && pending > 0 -> Icons.Filled.CloudUpload
+                linked -> Icons.Filled.CloudDone
+                pending > 0 -> Icons.Filled.CloudOff
+                else -> Icons.Filled.PhoneAndroid
+            }
+            Icon(icon, null, Modifier.size(18.dp))
+        },
     )
 }
 

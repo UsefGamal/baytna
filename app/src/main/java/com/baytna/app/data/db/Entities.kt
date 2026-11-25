@@ -12,7 +12,7 @@ import com.baytna.domain.model.MemberRole
 import com.baytna.domain.model.Ownership
 import com.baytna.domain.model.TransactionType
 
-/** Local sync state of a row. Cloud sync is not active yet, so rows stay PENDING. */
+/** Local sync state of a transaction row: PENDING until its outbox operations are acknowledged by the cloud. */
 enum class SyncState { PENDING, SYNCED, CONFLICT }
 
 enum class MemberStatus { ACTIVE, INVITED, REMOVED }
@@ -175,7 +175,7 @@ data class BudgetAllocationEntity(
     val version: Int = 1,
 )
 
-/** Local-only: pending operations to upload once cloud sync exists. Written in the same Room transaction as the change. */
+/** Local-only: operations waiting to upload. Written in the same Room transaction as the change; deleted once acknowledged. */
 @Entity(tableName = "sync_outbox", indices = [Index("status")])
 data class SyncOutboxEntity(
     @PrimaryKey val operationId: String,
@@ -192,6 +192,10 @@ data class SyncOutboxEntity(
 ) {
     companion object {
         const val STATUS_PENDING = "PENDING"
+        /** The cloud copy changed since this edit was made; the user picks which version to keep. */
+        const val STATUS_CONFLICT = "CONFLICT"
+        /** The backend refused the operation (for example a security rule); shown with the conflicts. */
+        const val STATUS_FAILED = "FAILED"
         const val OP_CREATE = "CREATE"
         const val OP_UPDATE = "UPDATE"
         const val OP_DELETE = "DELETE"

@@ -10,6 +10,7 @@ import com.baytna.app.data.db.HouseholdEntity
 import com.baytna.app.data.db.MemberEntity
 import com.baytna.app.data.db.MemberStatus
 import com.baytna.app.data.db.SyncOutboxEntity
+import com.baytna.app.data.db.SyncState
 import com.baytna.app.data.db.TransactionEntity
 import com.baytna.domain.finance.Allocation
 import com.baytna.domain.finance.BudgetMath
@@ -405,6 +406,7 @@ class BaytnaRepository(
                 originalTransactionId = originalId,
                 updatedAt = t,
                 version = existing.version + 1,
+                syncState = SyncState.PENDING,
             )
             transactions.update(row)
             enqueue(household.id, "transaction", row.id, SyncOutboxEntity.OP_UPDATE, Payloads.of(row), existing.version)
@@ -421,7 +423,7 @@ class BaytnaRepository(
             throw ValidationException(listOf(ValidationError.HAS_ACTIVE_REFUNDS))
         }
         val t = now()
-        val row = tx.copy(deletedAt = t, updatedAt = t, version = tx.version + 1)
+        val row = tx.copy(deletedAt = t, updatedAt = t, version = tx.version + 1, syncState = SyncState.PENDING)
         transactions.update(row)
         enqueue(tx.householdId, "transaction", id, SyncOutboxEntity.OP_DELETE, Payloads.of(row), tx.version)
     }
@@ -440,7 +442,7 @@ class BaytnaRepository(
             )
             if (errs.isNotEmpty()) throw ValidationException(errs)
         }
-        val row = tx.copy(deletedAt = null, updatedAt = now(), version = tx.version + 1)
+        val row = tx.copy(deletedAt = null, updatedAt = now(), version = tx.version + 1, syncState = SyncState.PENDING)
         transactions.update(row)
         enqueue(tx.householdId, "transaction", id, SyncOutboxEntity.OP_UPDATE, Payloads.of(row), tx.version)
     }

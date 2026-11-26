@@ -29,6 +29,7 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.baytna.app.R
+import com.baytna.app.ui.netColor
 import com.baytna.app.ui.AppState
 import com.baytna.app.ui.MainViewModel
 import com.baytna.app.ui.MonthSelector
@@ -66,8 +67,7 @@ fun InsightsScreen(vm: MainViewModel, state: AppState.Ready) {
             SectionCard(title = stringResource(R.string.income_vs_expenses)) {
                 StatLine(stringResource(R.string.income), money(flow.income), finance.income)
                 StatLine(stringResource(R.string.expenses), money(flow.expenses), finance.expense)
-                StatLine(stringResource(R.string.net_cash_flow), money(flow.net, signed = true),
-                    if (flow.net.isNegative) finance.expense else finance.income, bold = true)
+                StatLine(stringResource(R.string.net_cash_flow), money(flow.net, signed = true), netColor(flow.net), bold = true)
                 val rate = flow.netCashFlowRatePercent
                 Text(
                     if (rate != null) stringResource(R.string.net_rate, rate.toString()) else stringResource(R.string.net_rate_undefined),

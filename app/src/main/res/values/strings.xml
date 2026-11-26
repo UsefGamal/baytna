@@ -165,6 +165,7 @@
     <string name="import_unreadable">Could not read this file. It needs date, type, amount and account columns.</string>
     <string name="file_too_large">This file is too large.</string>
     <string name="working">Working…</string>
+    <string name="chart_month_desc">%1$s: income %2$s, expenses %3$s</string>
     <string name="appearance">Appearance</string>
     <string name="theme_system">System</string>
     <string name="theme_light">Light</string>

@@ -42,6 +42,7 @@ import com.baytna.app.ui.AppState
 import com.baytna.app.ui.MainViewModel
 import com.baytna.app.ui.Routes
 import com.baytna.app.ui.SectionCard
+import com.baytna.app.ui.SwitchRow
 import com.baytna.app.ui.currentLocale
 import com.baytna.domain.model.TransactionType
 import android.widget.Toast
@@ -91,16 +92,13 @@ fun MoreScreen(vm: MainViewModel, state: AppState.Ready, nav: NavController) {
         }
         item {
             SectionCard(title = stringResource(R.string.reminders)) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text(stringResource(R.string.reminders_hint), style = MaterialTheme.typography.bodyMedium, modifier = Modifier.weight(1f))
-                    Switch(state.settings.remindersEnabled, { on ->
-                        if (on && android.os.Build.VERSION.SDK_INT >= 33 && !vm.container.reminders.hasPermission()) {
-                            permissionLauncher.launch(android.Manifest.permission.POST_NOTIFICATIONS)
-                        } else {
-                            vm.setReminders(on)
-                        }
-                    })
-                }
+                SwitchRow(stringResource(R.string.reminders_hint), state.settings.remindersEnabled, { on ->
+                    if (on && android.os.Build.VERSION.SDK_INT >= 33 && !vm.container.reminders.hasPermission()) {
+                        permissionLauncher.launch(android.Manifest.permission.POST_NOTIFICATIONS)
+                    } else {
+                        vm.setReminders(on)
+                    }
+                }, style = MaterialTheme.typography.bodyMedium)
             }
         }
         item {

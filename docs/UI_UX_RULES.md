@@ -20,3 +20,4 @@ A short version of the mobile UI/UX rulebook, translated for a native Compose ap
 14. **Be liberal in input.** Amounts accept Arabic-Indic digits, "," or "." or "٫" as the decimal separator, and "," as a thousands separator ("1,250.50"). See `MoneyParser`.
 15. **Numbers must never look wrong.** Cap progress bars, keep transfers out of cash flow, and test the maths in `:domain`.
 16. **Nothing tappable that does nothing.** A chip or row that looks pressable must navigate or act.
+17. **Screen readers.** Screen titles (`SubScreen`) and card titles (`SectionCard`) are headings, so TalkBack can jump between them. A label with a switch is a `SwitchRow` (one toggleable row, read as "label, switch, on"); a switch inside a list row gets the row's name as its description. Charts give each bar group a spoken summary with the numbers.

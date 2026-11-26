@@ -66,6 +66,9 @@ import com.baytna.app.ui.MainViewModel
 import com.baytna.app.ui.SectionCard
 import com.baytna.app.ui.currentLocale
 import com.baytna.app.ui.displayName
+import com.baytna.app.ui.SwitchRow
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import com.baytna.app.ui.money
 import com.baytna.app.ui.theme.LocalFinanceColors
 import com.baytna.app.ui.typeLabel
@@ -427,7 +430,8 @@ fun RecurringScreen(vm: MainViewModel, state: AppState.Ready, nav: NavController
                                 TransactionType.TRANSFER -> finance.transfer
                                 else -> finance.expense
                             })
-                            Switch(r.isActive, { on -> vm.launch { setRecurringActive(r.id, on, r.version) } })
+                            Switch(r.isActive, { on -> vm.launch { setRecurringActive(r.id, on, r.version) } },
+                                Modifier.semantics { contentDescription = r.name })
                         }
                     },
                     modifier = Modifier.clickable { editing = r },
@@ -573,10 +577,7 @@ private fun RuleDialog(vm: MainViewModel, state: AppState.Ready, existing: Recur
                     snapshot.members.forEach { m -> FilterChip(payerId == m.id, { payerId = m.id }, label = { Text(m.displayName) }) }
                 }
                 if (type == TransactionType.EXPENSE) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Text(stringResource(R.string.personal_expense), Modifier.weight(1f))
-                        Switch(personal, { personal = it })
-                    }
+                    SwitchRow(stringResource(R.string.personal_expense), personal, { personal = it })
                     if (personal) {
                         ChipRow {
                             snapshot.members.forEach { m -> FilterChip(ownerId == m.id, { ownerId = m.id }, label = { Text(m.displayName) }) }

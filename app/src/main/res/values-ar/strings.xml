@@ -307,7 +307,7 @@
     <string name="expected_bills">الفواتير والمصاريف الثابتة</string>
     <string name="due_now">مستحق الآن</string>
     <string name="all_recurring">كل البنود المتكررة</string>
-    <string name="no_recurring">لا توجد بنود متكررة بعد. أضف الإيجار أو الراتب أو الفواتير.</string>
+    <string name="no_recurring">لا توجد بنود متكررة بعد. أضف الإيجار أو الراتب أو الفواتير أو تحويلًا شهريًا للادخار.</string>
     <string name="next_on">التالي: %1$s</string>
     <string name="paused">متوقف</string>
     <string name="overdue_since">متأخر منذ %1$s</string>

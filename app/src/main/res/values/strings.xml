@@ -307,7 +307,7 @@
     <string name="expected_bills">Bills and fixed costs</string>
     <string name="due_now">Due now</string>
     <string name="all_recurring">All recurring items</string>
-    <string name="no_recurring">No recurring items yet. Add rent, salary or bills.</string>
+    <string name="no_recurring">No recurring items yet. Add rent, salary, bills or a monthly transfer to savings.</string>
     <string name="next_on">Next: %1$s</string>
     <string name="paused">Paused</string>
     <string name="overdue_since">Overdue since %1$s</string>

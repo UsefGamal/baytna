@@ -85,6 +85,7 @@ internal object Payloads {
         "paidByUserId" to r.paidByUserId, "ownership" to r.ownership.name, "personalOwnerUserId" to r.personalOwnerUserId,
         "frequency" to r.frequency.name, "interval" to r.interval, "startDate" to r.startDate, "nextDueDate" to r.nextDueDate,
         "isActive" to r.isActive, "createdAt" to r.createdAt, "updatedAt" to r.updatedAt, "version" to r.version, "deletedAt" to r.deletedAt,
+        "destinationAccountId" to r.destinationAccountId,
     )
 
     fun of(a: ActivityEntity) = obj(

@@ -80,7 +80,7 @@ fun HomeScreen(vm: MainViewModel, state: AppState.Ready, nav: NavController) {
                     Text(stringResource(R.string.hello_member, state.me.displayName), style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
-                SyncChip(state.pendingSync, linked = state.settings.linkedHouseholdId == state.snapshot.household.id)
+                SyncChip(state.pendingSync, linked = state.settings.linkedHouseholdId == state.snapshot.household.id) { nav.navigate("cloud") }
             }
         }
         if (due.isNotEmpty()) {
@@ -171,9 +171,10 @@ fun HomeScreen(vm: MainViewModel, state: AppState.Ready, nav: NavController) {
 }
 
 @Composable
-fun SyncChip(pending: Int, linked: Boolean) {
+fun SyncChip(pending: Int, linked: Boolean, onClick: () -> Unit) {
+    // Tapping the status opens sync settings, so the chip never looks tappable without doing anything.
     AssistChip(
-        onClick = {},
+        onClick = onClick,
         label = {
             Text(
                 when {

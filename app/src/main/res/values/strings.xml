@@ -83,9 +83,7 @@
     <string name="today">Today</string>
     <string name="note">Note</string>
     <string name="save">Save</string>
-    <string name="ok">OK</string>
     <string name="cancel">Cancel</string>
-    <string name="delete_transaction_q">Delete this transaction?</string>
     <string name="delete_transaction_body">It stops counting in balances and reports. You can restore it from Transactions › Show deleted.</string>
     <string name="no_budget_for">No budget for %1$s</string>
     <string name="budget_explainer">A budget combines category limits with a zero-based plan: give every pound of planned income a job, including savings and a reserve.</string>
@@ -367,4 +365,12 @@
     <string name="reminder_budget_left">Remaining this month: %1$s</string>
     <string name="due_soon">Due soon</string>
     <string name="planning">Planning</string>
+    <!-- UI/UX pass -->
+    <string name="set_date">Set date</string>
+    <string name="previous_year">Previous year</string>
+    <string name="next_year">Next year</string>
+    <string name="color_n">Color %1$d</string>
+    <string name="delete_transaction_named">Delete %1$s · %2$s?</string>
+    <string name="remove_allocation_q">Remove the %1$s budget line (%2$s)?</string>
+    <string name="remove_allocation_body">Spending you already recorded stays as it is. Only this month\'s plan changes.</string>
 </resources>

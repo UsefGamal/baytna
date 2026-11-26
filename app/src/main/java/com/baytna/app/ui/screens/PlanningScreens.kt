@@ -15,6 +15,8 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.KeyboardArrowLeft
+import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.DateRange
 import androidx.compose.material.icons.filled.Delete
@@ -133,7 +135,7 @@ private fun DateField(label: String, date: LocalDate?, onChange: (LocalDate) -> 
                 TextButton(onClick = {
                     pickerState.selectedDateMillis?.let { onChange(Instant.ofEpochMilli(it).atZone(ZoneOffset.UTC).toLocalDate()) }
                     open = false
-                }) { Text(stringResource(R.string.ok)) }
+                }) { Text(stringResource(R.string.set_date)) }
             },
             dismissButton = { TextButton(onClick = { open = false }) { Text(stringResource(R.string.cancel)) } },
         ) { DatePicker(pickerState) }
@@ -682,9 +684,13 @@ fun ReportsScreen(vm: MainViewModel, state: AppState.Ready, nav: NavController) 
         LazyColumn(contentPadding = PaddingValues(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
             item {
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.Center, modifier = Modifier.fillMaxWidth()) {
-                    TextButton(onClick = { year-- }) { Text("‹") }
+                    IconButton(onClick = { year-- }) {
+                        Icon(Icons.AutoMirrored.Filled.KeyboardArrowLeft, stringResource(R.string.previous_year))
+                    }
                     Text(year.toString(), style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
-                    TextButton(onClick = { year++ }) { Text("›") }
+                    IconButton(onClick = { year++ }) {
+                        Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, stringResource(R.string.next_year))
+                    }
                 }
             }
             item {

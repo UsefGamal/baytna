@@ -54,4 +54,4 @@ app/      Android app: Room entities/DAOs, BaytnaRepository (validation + atomic
 docs/     Product, architecture, data model, sync/security, UI, tests, roadmap (the handoff pack).
 ```
 
-Decisions taken for this milestone are in `docs/DECISIONS.md`.
+Decisions taken for this milestone are in `docs/DECISIONS.md`. Screen rules (touch targets, contrast, RTL, copy) are in `docs/UI_UX_RULES.md`.

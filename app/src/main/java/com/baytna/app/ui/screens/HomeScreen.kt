@@ -36,6 +36,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavController
 import com.baytna.app.R
 import com.baytna.app.data.repo.toAllocation
+import com.baytna.app.ui.netColor
 import com.baytna.app.ui.AppState
 import com.baytna.app.ui.BudgetProgress
 import com.baytna.app.ui.EmptyState
@@ -109,8 +110,7 @@ fun HomeScreen(vm: MainViewModel, state: AppState.Ready, nav: NavController) {
                     Text(stringResource(R.string.expenses_net_of_refunds, money(flow.refunds)), style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
-                StatLine(stringResource(R.string.net_cash_flow), money(flow.net, signed = true),
-                    if (flow.net.isNegative) finance.expense else finance.income, bold = true)
+                StatLine(stringResource(R.string.net_cash_flow), money(flow.net, signed = true), netColor(flow.net), bold = true)
                 Text(stringResource(R.string.transfers_excluded), style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
@@ -119,8 +119,11 @@ fun HomeScreen(vm: MainViewModel, state: AppState.Ready, nav: NavController) {
             val b = budget
             SectionCard(title = stringResource(R.string.budget_this_month)) {
                 if (b == null) {
-                    Text(stringResource(R.string.no_budget_yet), style = MaterialTheme.typography.bodyMedium)
-                    TextButton(onClick = { nav.navigate("budgets") }) { Text(stringResource(R.string.set_up_budget)) }
+                    // Text and its action share one row, so the card ends at the text instead of under a padded button.
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Text(stringResource(R.string.no_budget_yet), Modifier.weight(1f), style = MaterialTheme.typography.bodyMedium)
+                        TextButton(onClick = { nav.navigate("budgets") }) { Text(stringResource(R.string.set_up_budget)) }
+                    }
                 } else {
                     val report = BudgetMath.report(Money(b.budget.planningIncomeMinor), b.allocations.map { it.toAllocation() }, byCategory)
                     val warning = BudgetMath.warningFor(report.totalActual, report.totalAvailable)

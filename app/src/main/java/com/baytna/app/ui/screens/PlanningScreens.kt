@@ -401,24 +401,30 @@ fun RecurringScreen(vm: MainViewModel, state: AppState.Ready, nav: NavController
             }
             if (due.isNotEmpty()) {
                 item { SectionTitle(stringResource(R.string.due_now)) }
-                items(due, key = { "due_" + it.id }) { r -> DueRow(vm, r, today) { confirming = r } }
+                items(due, key = { "due_" + it.id }) { r -> DueRow(vm, state, r, today) { confirming = r } }
             }
             item { SectionTitle(stringResource(R.string.all_recurring)) }
             if (planning.rules.isEmpty()) item { EmptyState(stringResource(R.string.no_recurring)) }
             items(planning.rules, key = { it.id }) { r ->
                 val category = r.categoryId?.let { state.snapshot.categoriesById[it] }
+                val route = transferRoute(state, r)
                 ListItem(
                     headlineContent = { Text(r.name) },
                     supportingContent = {
                         Text(listOfNotNull(
                             frequencyLabel(r.frequency, r.interval),
                             category?.displayName(),
+                            route,
                             if (r.isActive) stringResource(R.string.next_on, dateText(LocalDate.parse(r.nextDueDate))) else stringResource(R.string.paused),
                         ).joinToString(" · "))
                     },
                     trailingContent = {
                         Row(verticalAlignment = Alignment.CenterVertically) {
-                            Text(money(Money(r.amountMinor)), color = if (r.type == TransactionType.INCOME) finance.income else finance.expense)
+                            Text(money(Money(r.amountMinor)), color = when (r.type) {
+                                TransactionType.INCOME -> finance.income
+                                TransactionType.TRANSFER -> finance.transfer
+                                else -> finance.expense
+                            })
                             Switch(r.isActive, { on -> vm.launch { setRecurringActive(r.id, on, r.version) } })
                         }
                     },
@@ -437,9 +443,17 @@ private fun SectionTitle(text: String) {
         modifier = Modifier.padding(top = 8.dp))
 }
 
+/** "Cash → Savings" for a recurring transfer, null for income and expenses. */
+@Composable
+private fun transferRoute(state: AppState.Ready, r: RecurringRuleEntity): String? {
+    if (r.type != TransactionType.TRANSFER) return null
+    val byId = state.snapshot.accounts.associateBy { it.id }
+    return stringResource(R.string.transfer_from_to, byId[r.accountId]?.name ?: "", byId[r.destinationAccountId]?.name ?: "")
+}
+
 /** A recurring item waiting for confirmation, with Confirm and Skip. Shared by the recurring list and Home. */
 @Composable
-fun DueRow(vm: MainViewModel, r: RecurringRuleEntity, today: LocalDate, onConfirm: () -> Unit) {
+fun DueRow(vm: MainViewModel, state: AppState.Ready, r: RecurringRuleEntity, today: LocalDate, onConfirm: () -> Unit) {
     val dueDate = LocalDate.parse(r.nextDueDate)
     val whenText = when {
         dueDate.isBefore(today) -> stringResource(R.string.overdue_since, dateText(dueDate))
@@ -450,7 +464,7 @@ fun DueRow(vm: MainViewModel, r: RecurringRuleEntity, today: LocalDate, onConfir
         Row(verticalAlignment = Alignment.CenterVertically) {
             Column(Modifier.weight(1f)) {
                 Text(r.name, style = MaterialTheme.typography.titleSmall)
-                Muted("${typeLabel(r.type)} · $whenText")
+                Muted(listOfNotNull(typeLabel(r.type), transferRoute(state, r), whenText).joinToString(" · "))
             }
             Text(money(Money(r.amountMinor)), fontWeight = FontWeight.SemiBold)
         }
@@ -494,6 +508,7 @@ private fun RuleDialog(vm: MainViewModel, state: AppState.Ready, existing: Recur
     var type by remember { mutableStateOf(existing?.type ?: TransactionType.EXPENSE) }
     var amount by remember { mutableStateOf(existing?.let { MoneyParser.toEditable(Money(it.amountMinor)) } ?: "") }
     var accountId by remember { mutableStateOf(existing?.accountId ?: snapshot.accounts.firstOrNull { it.isActive }?.id) }
+    var destinationId by remember { mutableStateOf(existing?.destinationAccountId) }
     var categoryId by remember { mutableStateOf(existing?.categoryId) }
     var frequency by remember { mutableStateOf(existing?.frequency ?: Frequency.MONTHLY) }
     var interval by remember { mutableStateOf((existing?.interval ?: 1).toString()) }
@@ -507,6 +522,8 @@ private fun RuleDialog(vm: MainViewModel, state: AppState.Ready, existing: Recur
     val catType = if (type == TransactionType.INCOME) CategoryType.INCOME else CategoryType.EXPENSE
     val categories = snapshot.categories.filter { it.type == catType && (it.isActive || it.id == categoryId) }
     if (categoryId != null && categories.none { it.id == categoryId }) categoryId = null
+    val isTransfer = type == TransactionType.TRANSFER
+    val accountChoices = snapshot.accounts.filter { it.isActive || it.id == accountId || it.id == destinationId }
 
     AlertDialog(
         onDismissRequest = onDismiss,
@@ -516,20 +533,30 @@ private fun RuleDialog(vm: MainViewModel, state: AppState.Ready, existing: Recur
                 OutlinedTextField(name, { name = it }, singleLine = true, label = { Text(stringResource(R.string.recurring_name)) },
                     placeholder = { Text(stringResource(R.string.recurring_name_hint)) }, modifier = Modifier.fillMaxWidth())
                 ChipRow {
-                    listOf(TransactionType.EXPENSE, TransactionType.INCOME).forEach { t ->
+                    listOf(TransactionType.EXPENSE, TransactionType.INCOME, TransactionType.TRANSFER).forEach { t ->
                         FilterChip(type == t, { type = t }, label = { Text(typeLabel(t)) })
                     }
                 }
                 AmountField(amount, { amount = it }, stringResource(R.string.amount))
-                Muted(stringResource(R.string.account))
+                Muted(stringResource(if (isTransfer) R.string.from_account else R.string.account))
                 FlowChips {
-                    snapshot.accounts.filter { it.isActive || it.id == accountId }.forEach { a ->
+                    accountChoices.filter { it.isActive || it.id == accountId }.forEach { a ->
                         FilterChip(accountId == a.id, { accountId = a.id }, label = { Text(a.name) })
                     }
                 }
-                Muted(stringResource(R.string.category))
-                FlowChips {
-                    categories.forEach { c -> FilterChip(categoryId == c.id, { categoryId = c.id }, label = { Text(c.displayName()) }) }
+                if (isTransfer) {
+                    Muted(stringResource(R.string.to_account))
+                    FlowChips {
+                        accountChoices.filter { it.id != accountId && (it.isActive || it.id == destinationId) }.forEach { a ->
+                            FilterChip(destinationId == a.id, { destinationId = a.id }, label = { Text(a.name) })
+                        }
+                    }
+                    Muted(stringResource(R.string.transfers_excluded))
+                } else {
+                    Muted(stringResource(R.string.category))
+                    FlowChips {
+                        categories.forEach { c -> FilterChip(categoryId == c.id, { categoryId = c.id }, label = { Text(c.displayName()) }) }
+                    }
                 }
                 Muted(stringResource(R.string.repeats))
                 ChipRow {
@@ -563,7 +590,8 @@ private fun RuleDialog(vm: MainViewModel, state: AppState.Ready, existing: Recur
         },
         confirmButton = {
             TextButton(
-                enabled = name.isNotBlank() && parsed != null && parsed.isPositive && accountId != null && categoryId != null && intervalValue != null,
+                enabled = name.isNotBlank() && parsed != null && parsed.isPositive && accountId != null && intervalValue != null &&
+                    (if (isTransfer) destinationId != null && destinationId != accountId else categoryId != null),
                 onClick = {
                     onDismiss()
                     val isPersonal = personal && type == TransactionType.EXPENSE
@@ -571,7 +599,9 @@ private fun RuleDialog(vm: MainViewModel, state: AppState.Ready, existing: Recur
                         saveRecurring(
                             RecurringInput(
                                 id = existing?.id, expectedVersion = existing?.version, name = name, type = type,
-                                amount = parsed ?: Money.ZERO, accountId = accountId ?: "", categoryId = categoryId,
+                                amount = parsed ?: Money.ZERO, accountId = accountId ?: "",
+                                destinationAccountId = if (isTransfer) destinationId else null,
+                                categoryId = if (isTransfer) null else categoryId,
                                 paidByUserId = payerId, ownership = if (isPersonal) Ownership.PERSONAL else Ownership.SHARED,
                                 personalOwnerUserId = if (isPersonal) ownerId else null, frequency = frequency,
                                 interval = intervalValue ?: 1, startDate = start,

@@ -152,6 +152,48 @@ class PlanningRepositoryTest {
         assertNotNull(repo.saveRecurring(rule(ids, LocalDate.of(2026, 11, 1), type = TransactionType.INCOME, category = ids.salary)))
     }
 
+    @Test fun recurringTransferMovesMoneyBetweenAccountsWithoutCashFlow() = runTest {
+        val ids = setup()
+        val savings = repo.saveAccount(ids.household, null, null, "Savings", AccountType.SAVINGS, 0, true, null)
+        val id = repo.saveRecurring(
+            rule(ids, LocalDate.of(2026, 11, 1), type = TransactionType.TRANSFER).copy(
+                name = "To savings", amount = Money(2_000_00), destinationAccountId = savings, ownership = Ownership.PERSONAL,
+                personalOwnerUserId = ids.me,
+            ),
+        )
+        val saved = db.planningDao().getRule(id)!!
+        assertEquals(savings, saved.destinationAccountId)
+        assertEquals(null, saved.categoryId)
+        assertEquals(Ownership.SHARED, saved.ownership)
+
+        val tx = repo.getTransaction(repo.confirmRecurring(id, 1, null, ids.me))!!
+        assertEquals(TransactionType.TRANSFER, tx.type)
+        assertEquals(savings, tx.destinationAccountId)
+        val s = repo.observeSnapshot().first()!!
+        assertEquals(Money(8_000_00), s.balances[ids.cash])
+        assertEquals(Money(2_000_00), s.balances[savings])
+        assertEquals(Money(10_000_00), s.totalBalance)
+        assertEquals(Money.ZERO, CashFlowCalculator.summarize(s.ledger).expenses)
+        assertEquals("2026-12-01", db.planningDao().getRule(id)!!.nextDueDate)
+    }
+
+    @Test fun recurringTransferNeedsADifferentDestination() = runTest {
+        val ids = setup()
+        val transfer = rule(ids, LocalDate.of(2026, 11, 1), type = TransactionType.TRANSFER)
+        try {
+            repo.saveRecurring(transfer)
+            fail("expected DESTINATION_REQUIRED")
+        } catch (e: ValidationException) {
+            assertTrue(ValidationError.DESTINATION_REQUIRED in e.errors)
+        }
+        try {
+            repo.saveRecurring(transfer.copy(destinationAccountId = ids.cash))
+            fail("expected SAME_SOURCE_AND_DESTINATION")
+        } catch (e: ValidationException) {
+            assertTrue(ValidationError.SAME_SOURCE_AND_DESTINATION in e.errors)
+        }
+    }
+
     @Test fun changingTheScheduleDoesNotReopenHandledOccurrences() = runTest {
         val ids = setup()
         val id = repo.saveRecurring(rule(ids, LocalDate.of(2026, 9, 1)))

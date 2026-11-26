@@ -47,7 +47,7 @@ class MigrationTest {
         assertEquals(2, snapshot.members.size)
         repo.saveGoal(snapshot.household.id, null, null, "Trip", 1_000_00, null, null)
         assertEquals(1, repo.observeGoals(snapshot.household.id).first().size)
-        assertEquals(2, upgraded.openHelper.readableDatabase.version)
+        assertEquals(3, upgraded.openHelper.readableDatabase.version)
         upgraded.close()
         context.deleteDatabase(name)
     }

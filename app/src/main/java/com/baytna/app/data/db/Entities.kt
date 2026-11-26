@@ -222,7 +222,7 @@ data class GoalContributionEntity(
     val deletedAt: Long? = null,
 )
 
-/** A repeating income or expense (rent, salary, bills). Each occurrence is posted only when someone confirms it. */
+/** A repeating income, expense or transfer between accounts (rent, salary, bills, savings). Each occurrence is posted only when someone confirms it. */
 @Entity(
     tableName = "recurring_rules",
     foreignKeys = [
@@ -236,9 +236,10 @@ data class RecurringRuleEntity(
     @PrimaryKey val id: String,
     val householdId: String,
     val name: String,
-    /** INCOME or EXPENSE. */
+    /** INCOME, EXPENSE or TRANSFER. */
     val type: TransactionType,
     val amountMinor: Long,
+    /** The account money comes from (expense, transfer) or goes into (income). */
     val accountId: String,
     val categoryId: String?,
     val paidByUserId: String,
@@ -255,6 +256,8 @@ data class RecurringRuleEntity(
     val updatedAt: Long,
     val version: Int = 1,
     val deletedAt: Long? = null,
+    /** The account a TRANSFER goes into; null for income and expenses. Added in schema 3. */
+    val destinationAccountId: String? = null,
 )
 
 /** Who changed what. Written with every local change and synced, never edited. */

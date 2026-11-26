@@ -124,6 +124,14 @@ fun amountColor(type: TransactionType): Color = when (type) {
     TransactionType.TRANSFER -> LocalFinanceColors.current.transfer
 }
 
+/** Red below zero, green above, plain text at zero (a zero is neither a gain nor a loss). */
+@Composable
+fun netColor(net: Money): Color = when {
+    net.isNegative -> LocalFinanceColors.current.expense
+    net.isPositive -> LocalFinanceColors.current.income
+    else -> MaterialTheme.colorScheme.onSurface
+}
+
 @Composable
 fun typeLabel(type: TransactionType): String = stringResource(
     when (type) {

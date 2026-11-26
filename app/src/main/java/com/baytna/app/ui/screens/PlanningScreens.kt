@@ -58,6 +58,7 @@ import com.baytna.app.data.db.SavingsGoalEntity
 import com.baytna.app.data.repo.BaytnaRepository
 import com.baytna.app.data.repo.RecurringInput
 import com.baytna.app.data.repo.noonCairo
+import com.baytna.app.ui.netColor
 import com.baytna.app.ui.AppState
 import com.baytna.app.ui.BudgetProgress
 import com.baytna.app.ui.EmptyState
@@ -727,8 +728,7 @@ fun ReportsScreen(vm: MainViewModel, state: AppState.Ready, nav: NavController) 
                 SectionCard(title = stringResource(R.string.year_summary)) {
                     StatLine(stringResource(R.string.income), money(total.income), finance.income)
                     StatLine(stringResource(R.string.expenses), money(total.expenses), finance.expense)
-                    StatLine(stringResource(R.string.net_cash_flow), money(total.net, signed = true),
-                        if (total.net.isNegative) finance.expense else finance.income, bold = true)
+                    StatLine(stringResource(R.string.net_cash_flow), money(total.net, signed = true), netColor(total.net), bold = true)
                     val rate = total.netCashFlowRatePercent
                     Muted(if (rate != null) stringResource(R.string.net_rate, rate.toString()) else stringResource(R.string.net_rate_undefined))
                     val active = months.filter { it.second.income.isPositive || it.second.expenses.isPositive }

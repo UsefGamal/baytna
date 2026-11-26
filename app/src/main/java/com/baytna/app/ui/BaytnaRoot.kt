@@ -1,5 +1,8 @@
 package com.baytna.app.ui
 
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.scaleIn
+import androidx.compose.animation.scaleOut
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.consumeWindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
@@ -22,10 +25,20 @@ import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.input.nestedscroll.NestedScrollConnection
+import androidx.compose.ui.input.nestedscroll.NestedScrollSource
+import androidx.compose.ui.input.nestedscroll.nestedScroll
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.Density
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
@@ -101,6 +114,18 @@ private fun MainScaffold(vm: MainViewModel, state: AppState.Ready) {
     val backStack by nav.currentBackStackEntryAsState()
     val currentRoute = backStack?.destination?.route
     val onTab = tabs.any { it.route == currentRoute }
+    // The + button hides while the list scrolls down, so it never sits on top of a card the user is reading,
+    // and comes back as soon as they scroll up or change screen.
+    var fabShown by remember { mutableStateOf(true) }
+    LaunchedEffect(currentRoute) { fabShown = true }
+    val fabScroll = remember {
+        object : NestedScrollConnection {
+            override fun onPreScroll(available: Offset, source: NestedScrollSource): Offset {
+                if (available.y < -4f) fabShown = false else if (available.y > 4f) fabShown = true
+                return Offset.Zero
+            }
+        }
+    }
 
     Scaffold(
         snackbarHost = { SnackbarHost(snackbar) },
@@ -112,14 +137,17 @@ private fun MainScaffold(vm: MainViewModel, state: AppState.Ready) {
                             selected = currentRoute == tab.route,
                             onClick = { nav.navigateTab(tab.route) },
                             icon = { Icon(tab.icon, contentDescription = null) },
-                            label = { Text(stringResource(tab.label)) },
+                            label = { TabLabel(stringResource(tab.label)) },
                         )
                     }
                 }
             }
         },
         floatingActionButton = {
-            if (currentRoute == "home" || currentRoute == "transactions") {
+            AnimatedVisibility(
+                visible = fabShown && (currentRoute == "home" || currentRoute == "transactions"),
+                enter = scaleIn(), exit = scaleOut(),
+            ) {
                 FloatingActionButton(onClick = { nav.navigate(Routes.editTransaction()) }) {
                     Icon(Icons.Filled.Add, contentDescription = stringResource(R.string.add_transaction))
                 }
@@ -128,7 +156,7 @@ private fun MainScaffold(vm: MainViewModel, state: AppState.Ready) {
     ) { padding ->
         // Consume what the scaffold already padded, so top bars and imePadding inside screens don't add the
         // status bar or navigation bar a second time.
-        NavHost(nav, startDestination = "home", modifier = Modifier.padding(padding).consumeWindowInsets(padding)) {
+        NavHost(nav, startDestination = "home", modifier = Modifier.padding(padding).consumeWindowInsets(padding).nestedScroll(fabScroll)) {
             composable("home") { HomeScreen(vm, state, nav) }
             composable("transactions") { TransactionsScreen(vm, state, nav) }
             composable("budgets") { BudgetsScreen(vm, state) }
@@ -165,6 +193,15 @@ private fun MainScaffold(vm: MainViewModel, state: AppState.Ready) {
                 CloudScreen(cloudVm, state.snapshot.household, state.snapshot.members, state.me.id, state.pendingSync) { nav.popBackStack() }
             }
         }
+    }
+}
+
+/** One line, always: five tabs share about 72dp each, so large system font sizes are capped at 115% here. */
+@Composable
+private fun TabLabel(text: String) {
+    val density = LocalDensity.current
+    CompositionLocalProvider(LocalDensity provides Density(density.density, density.fontScale.coerceAtMost(1.15f))) {
+        Text(text, maxLines = 1, softWrap = false, overflow = TextOverflow.Ellipsis)
     }
 }
 

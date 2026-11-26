@@ -251,3 +251,37 @@ interface SyncDao {
 
     @Upsert suspend fun upsertCursor(cursor: SyncCursorEntity)
 }
+
+/** Whole-household reads and wipes for JSON backup and restore. */
+@Dao
+interface BackupDao {
+    @Query("SELECT * FROM households") suspend fun households(): List<HouseholdEntity>
+    @Query("SELECT * FROM household_members WHERE householdId = :h") suspend fun members(h: String): List<MemberEntity>
+    @Query("SELECT * FROM accounts WHERE householdId = :h") suspend fun accounts(h: String): List<AccountEntity>
+    @Query("SELECT * FROM categories WHERE householdId = :h") suspend fun categories(h: String): List<CategoryEntity>
+    @Query("SELECT * FROM transactions WHERE householdId = :h") suspend fun transactions(h: String): List<TransactionEntity>
+    @Query("SELECT * FROM budgets WHERE householdId = :h") suspend fun budgets(h: String): List<BudgetEntity>
+    @Query("SELECT a.* FROM budget_allocations a JOIN budgets b ON a.budgetId = b.id WHERE b.householdId = :h")
+    suspend fun allocations(h: String): List<BudgetAllocationEntity>
+    @Query("SELECT * FROM savings_goals WHERE householdId = :h") suspend fun goals(h: String): List<SavingsGoalEntity>
+    @Query("SELECT * FROM goal_contributions WHERE householdId = :h") suspend fun contributions(h: String): List<GoalContributionEntity>
+    @Query("SELECT * FROM recurring_rules WHERE householdId = :h") suspend fun rules(h: String): List<RecurringRuleEntity>
+    @Query("SELECT * FROM activity_logs WHERE householdId = :h") suspend fun activity(h: String): List<ActivityEntity>
+
+    @Query("SELECT id FROM transactions") suspend fun transactionIds(): List<String>
+
+    // Children before parents, so foreign keys hold while the phone is emptied.
+    @Query("DELETE FROM sync_outbox") suspend fun wipeOutbox()
+    @Query("DELETE FROM sync_cursors") suspend fun wipeCursors()
+    @Query("DELETE FROM activity_logs") suspend fun wipeActivity()
+    @Query("DELETE FROM recurring_rules") suspend fun wipeRules()
+    @Query("DELETE FROM goal_contributions") suspend fun wipeContributions()
+    @Query("DELETE FROM savings_goals") suspend fun wipeGoals()
+    @Query("DELETE FROM budget_allocations") suspend fun wipeAllocations()
+    @Query("DELETE FROM transactions") suspend fun wipeTransactions()
+    @Query("DELETE FROM budgets") suspend fun wipeBudgets()
+    @Query("DELETE FROM categories") suspend fun wipeCategories()
+    @Query("DELETE FROM accounts") suspend fun wipeAccounts()
+    @Query("DELETE FROM household_members") suspend fun wipeMembers()
+    @Query("DELETE FROM households") suspend fun wipeHouseholds()
+}

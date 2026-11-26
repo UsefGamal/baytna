@@ -57,6 +57,7 @@ import com.baytna.app.ui.screens.HomeScreen
 import com.baytna.app.ui.screens.InsightsScreen
 import com.baytna.app.ui.screens.MembersScreen
 import com.baytna.app.ui.screens.MoreScreen
+import com.baytna.app.ui.screens.DataScreen
 import com.baytna.app.ui.screens.OnboardingScreen
 import com.baytna.app.ui.screens.TransactionEditScreen
 import com.baytna.app.ui.screens.TransactionsScreen
@@ -160,6 +161,7 @@ private fun MainScaffold(vm: MainViewModel, state: AppState.Ready) {
             composable("recurring") { RecurringScreen(vm, state, nav) }
             composable("activity") { ActivityScreen(vm, state, nav) }
             composable("reports") { ReportsScreen(vm, state, nav) }
+            composable("data") { DataScreen(vm, state, nav) }
             composable("cloud") {
                 val cloudVm: CloudViewModel = viewModel(factory = viewModelFactory { initializer { CloudViewModel(vm.container) } })
                 CloudScreen(cloudVm, state.snapshot.household, state.snapshot.members, state.me.id, state.pendingSync) { nav.popBackStack() }

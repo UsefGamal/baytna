@@ -15,7 +15,7 @@ import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.Savings
 import androidx.compose.material.icons.filled.Category
 import androidx.compose.material.icons.filled.Cloud
-import androidx.compose.material.icons.filled.FileDownload
+import androidx.compose.material.icons.filled.Backup
 import androidx.compose.material.icons.filled.Group
 import androidx.compose.material.icons.filled.SwapHoriz
 import androidx.compose.material3.FilterChip
@@ -28,7 +28,6 @@ import androidx.compose.material3.Text
 import androidx.compose.foundation.layout.Row
 import androidx.compose.ui.Alignment
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -44,36 +43,13 @@ import com.baytna.app.ui.MainViewModel
 import com.baytna.app.ui.Routes
 import com.baytna.app.ui.SectionCard
 import com.baytna.app.ui.currentLocale
-import com.baytna.app.ui.displayName
 import com.baytna.domain.model.TransactionType
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
 import android.widget.Toast
 
 @Composable
 fun MoreScreen(vm: MainViewModel, state: AppState.Ready, nav: NavController) {
     val context = LocalContext.current
-    val scope = rememberCoroutineScope()
     val language = currentLocale().language
-    val exportLauncher = rememberLauncherForActivityResult(ActivityResultContracts.CreateDocument("text/csv")) { uri ->
-        if (uri != null) {
-            scope.launch {
-                val ok = runCatching {
-                    val csv = vm.repo.exportTransactionsCsv { it.displayName(context) }
-                    withContext(Dispatchers.IO) {
-                        context.contentResolver.openOutputStream(uri)?.use { out ->
-                            // UTF-8 BOM so spreadsheet apps detect Arabic text correctly.
-                            out.write(byteArrayOf(0xEF.toByte(), 0xBB.toByte(), 0xBF.toByte()))
-                            out.write(csv.toByteArray(Charsets.UTF_8))
-                        } ?: error("Cannot open file")
-                    }
-                }.isSuccess
-                Toast.makeText(context, if (ok) R.string.export_done else R.string.export_failed, Toast.LENGTH_SHORT).show()
-            }
-        }
-    }
-
     val permissionLauncher = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
         vm.setReminders(granted)
         if (!granted) Toast.makeText(context, R.string.reminders_denied, Toast.LENGTH_LONG).show()
@@ -135,7 +111,7 @@ fun MoreScreen(vm: MainViewModel, state: AppState.Ready, nav: NavController) {
                 NavRow(Icons.Filled.AccountBalanceWallet, stringResource(R.string.accounts)) { nav.navigate("accounts") }
                 NavRow(Icons.Filled.Category, stringResource(R.string.categories)) { nav.navigate("categories") }
                 NavRow(Icons.Filled.Group, stringResource(R.string.members)) { nav.navigate("members") }
-                NavRow(Icons.Filled.FileDownload, stringResource(R.string.export_csv)) { exportLauncher.launch("baytna-transactions.csv") }
+                NavRow(Icons.Filled.Backup, stringResource(R.string.data_title)) { nav.navigate("data") }
             }
         }
         item {
@@ -166,7 +142,7 @@ fun MoreScreen(vm: MainViewModel, state: AppState.Ready, nav: NavController) {
 }
 
 @Composable
-private fun NavRow(icon: ImageVector, label: String, onClick: () -> Unit) {
+internal fun NavRow(icon: ImageVector, label: String, onClick: () -> Unit) {
     ListItem(
         headlineContent = { Text(label) },
         leadingContent = { Icon(icon, null) },

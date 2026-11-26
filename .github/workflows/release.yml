@@ -68,7 +68,7 @@ jobs:
             echo "::error::Missing RELEASE_KEYSTORE_BASE64 secret. See docs/RELEASING.md."; exit 1
           fi
           printf '%s' "$KEYSTORE_BASE64" | tr -d ' \r\n' | base64 -d > "$RUNNER_TEMP/release.jks" || true
-          echo "Keystore: $(wc -c < "$RUNNER_TEMP/release.jks") bytes, sha256 $(sha256sum "$RUNNER_TEMP/release.jks" | cut -c1-16)"
+          echo "Keystore from secret: $(wc -c < "$RUNNER_TEMP/release.jks") bytes (expected 4280), sha256 $(sha256sum "$RUNNER_TEMP/release.jks" | cut -c1-16)"
           echo "BAYTNA_KEYSTORE_PATH=$RUNNER_TEMP/release.jks" >> "$GITHUB_ENV"
 
       - name: Check release keystore
@@ -76,8 +76,8 @@ jobs:
           STORE_PASSWORD: ${{ secrets.RELEASE_KEYSTORE_PASSWORD }}
           KEY_ALIAS: ${{ secrets.RELEASE_KEY_ALIAS }}
         run: |
-          if ! keytool -list -keystore "$BAYTNA_KEYSTORE_PATH" -storepass "$STORE_PASSWORD" -alias "$KEY_ALIAS" > /dev/null 2>"$RUNNER_TEMP/keytool.err"; then
-            echo "::error::The release keystore can't be read: $(grep -v JAVA_TOOL "$RUNNER_TEMP/keytool.err" | head -1). Usually RELEASE_KEYSTORE_BASE64 was pasted incompletely, or the password or alias secret is wrong."
+          if ! keytool -list -keystore "$BAYTNA_KEYSTORE_PATH" -storepass "$STORE_PASSWORD" -alias "$KEY_ALIAS" > "$RUNNER_TEMP/keytool.err" 2>&1; then
+            echo "::error::The release keystore can't be read: $(grep -v JAVA_TOOL "$RUNNER_TEMP/keytool.err" | grep . | head -1). Usually RELEASE_KEYSTORE_BASE64 was pasted incompletely, or the password or alias secret is wrong."
             exit 1
           fi
           echo "Release keystore and alias OK"

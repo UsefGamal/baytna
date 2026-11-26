@@ -53,6 +53,12 @@ interface CloudAuth {
     suspend fun signUp(email: String, password: String)
     suspend fun sendPasswordReset(email: String)
     fun signOut()
+
+    /** Checks the password again; account deletion needs a recent sign-in. */
+    suspend fun reauthenticate(password: String)
+
+    /** Deletes the signed-in account from the provider and signs out. */
+    suspend fun deleteUser()
 }
 
 /**
@@ -73,6 +79,15 @@ interface CloudBackend {
     suspend fun joinWithInvite(uid: String, tokenHash: String): UserLink
 
     suspend fun listMemberships(householdId: String): List<RemoteMembership>
+
+    /**
+     * Removes [uid]'s membership. With [erase] (the caller is the last member), first deletes every record,
+     * operation and invite of the household and the household itself.
+     */
+    suspend fun leaveHousehold(uid: String, householdId: String, erase: Boolean)
+
+    /** Deletes the account's pointer to its household. */
+    suspend fun deleteUserLink(uid: String)
 
     /** Applies one outbox operation with version check and idempotency on [SyncOutboxEntity.operationId]. */
     suspend fun push(uid: String, op: SyncOutboxEntity, payload: String): PushResult

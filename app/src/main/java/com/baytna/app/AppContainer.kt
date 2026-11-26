@@ -1,6 +1,7 @@
 package com.baytna.app
 
 import android.content.Context
+import com.baytna.app.data.backup.Backups
 import com.baytna.app.data.db.BaytnaDatabase
 import com.baytna.app.data.prefs.SettingsStore
 import com.baytna.app.data.repo.BaytnaRepository
@@ -22,6 +23,7 @@ class AppContainer(context: Context) {
     val settings = SettingsStore(context)
     val repository = BaytnaRepository(database, actor = { settings.settings.first().currentMemberId })
     val reminders = Reminders(context, repository, settings)
+    val backups = Backups(database)
 
     private val firebase = FirebaseCloud.createOrNull(context)
     val sync = SyncManager(context, database, settings, firebase, firebase, appScope)

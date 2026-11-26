@@ -150,6 +150,34 @@ class SyncManager(
         statusState.value = SyncStatus()
     }
 
+    /**
+     * Deletes the signed-in account. The password is checked first, so nothing is removed on a typo. If a partner is
+     * still in the household, only this account's membership goes and they keep the shared data; if this is the last
+     * member, the household's cloud data is erased. Data on this phone stays, and sync is turned off.
+     */
+    suspend fun deleteAccount(password: String) {
+        val auth = requireAuth()
+        val backend = requireBackend()
+        val uid = requireUid()
+        auth.reauthenticate(password)
+        mutex.withLock {
+            val link = backend.getUserLink(uid)
+            if (link != null) {
+                val others = try {
+                    backend.listMemberships(link.householdId).any { it.uid != uid }
+                } catch (e: CloudException) {
+                    // Already removed from that household: nothing left to leave.
+                    if (e.error == CloudError.NOT_MEMBER) null else throw e
+                }
+                if (others != null) backend.leaveHousehold(uid, link.householdId, erase = !others)
+            }
+            backend.deleteUserLink(uid)
+            settings.setLinkedHousehold(null)
+        }
+        auth.deleteUser()
+        statusState.value = SyncStatus()
+    }
+
     /** The household this account already belongs to in the cloud, if any (used to offer a restore). */
     suspend fun cloudLink(): UserLink? = requireBackend().getUserLink(requireUid())
 

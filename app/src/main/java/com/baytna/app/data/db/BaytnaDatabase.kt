@@ -34,6 +34,7 @@ abstract class BaytnaDatabase : RoomDatabase() {
     abstract fun planningDao(): PlanningDao
     abstract fun outboxDao(): OutboxDao
     abstract fun syncDao(): SyncDao
+    abstract fun backupDao(): BackupDao
 
     companion object {
         const val NAME = "baytna.db"

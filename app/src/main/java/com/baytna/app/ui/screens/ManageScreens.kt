@@ -48,7 +48,9 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
+import com.baytna.app.ui.SwitchRow
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
@@ -81,7 +83,7 @@ import com.baytna.domain.money.MoneyParser
 internal fun SubScreen(title: String, nav: NavController, actions: @Composable () -> Unit = {}, content: @Composable () -> Unit) {
     Column(Modifier.fillMaxSize()) {
         TopAppBar(
-            title = { Text(title) },
+            title = { Text(title, Modifier.semantics { heading() }) },
             navigationIcon = {
                 IconButton(onClick = { nav.popBackStack() }) { Icon(Icons.AutoMirrored.Filled.ArrowBack, stringResource(R.string.back)) }
             },
@@ -196,10 +198,7 @@ private fun AccountDialog(vm: MainViewModel, state: AppState.Ready, existing: Ac
                     label = { Text(stringResource(R.string.opening_balance)) },
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                     suffix = { Text(stringResource(R.string.currency_symbol)) })
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text(stringResource(R.string.shared_account), Modifier.weight(1f))
-                    Switch(shared, { shared = it })
-                }
+                SwitchRow(stringResource(R.string.shared_account), shared, { shared = it })
                 if (!shared) {
                     ChipRow {
                         state.snapshot.members.forEach { m -> FilterChip(ownerId == m.id, { ownerId = m.id }, label = { Text(m.displayName) }) }
@@ -246,7 +245,9 @@ fun CategoriesScreen(vm: MainViewModel, state: AppState.Ready, nav: NavControlle
                             }
                         },
                         trailingContent = {
-                            Switch(c.isActive, { active -> vm.launch { setCategoryActive(c.id, active, c.version) } })
+                            val label = c.displayName()
+                            Switch(c.isActive, { active -> vm.launch { setCategoryActive(c.id, active, c.version) } },
+                                Modifier.semantics { contentDescription = label })
                         },
                         modifier = Modifier.clickable { editing = c },
                     )

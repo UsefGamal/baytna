@@ -47,6 +47,7 @@ import com.baytna.app.ui.MonthSelector
 import com.baytna.app.ui.SectionCard
 import com.baytna.app.ui.currentLocale
 import com.baytna.app.ui.displayName
+import com.baytna.app.ui.SwitchRow
 import com.baytna.app.ui.money
 import com.baytna.app.ui.theme.LocalFinanceColors
 import com.baytna.app.ui.warningLabel
@@ -115,12 +116,9 @@ fun BudgetsScreen(vm: MainViewModel, state: AppState.Ready) {
                         color = MaterialTheme.colorScheme.onSurfaceVariant)
                 Text(stringResource(R.string.allocations_not_transactions), style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant)
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text(stringResource(R.string.rollover_next_month), Modifier.weight(1f), style = MaterialTheme.typography.bodyMedium)
-                    Switch(bs.budget.rolloverEnabled, { enabled ->
-                        vm.launch { updateBudget(bs.budget.id, bs.budget.version, bs.budget.planningIncomeMinor, enabled) }
-                    })
-                }
+                SwitchRow(stringResource(R.string.rollover_next_month), bs.budget.rolloverEnabled, { enabled ->
+                    vm.launch { updateBudget(bs.budget.id, bs.budget.version, bs.budget.planningIncomeMinor, enabled) }
+                }, style = MaterialTheme.typography.bodyMedium)
             }
         }
 

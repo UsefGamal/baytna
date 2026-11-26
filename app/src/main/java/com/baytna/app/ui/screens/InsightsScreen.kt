@@ -23,6 +23,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
@@ -80,7 +81,10 @@ fun InsightsScreen(vm: MainViewModel, state: AppState.Ready) {
                 val fmt = DateTimeFormatter.ofPattern("MMM", locale)
                 Row(Modifier.fillMaxWidth().height(140.dp), horizontalArrangement = Arrangement.SpaceEvenly, verticalAlignment = Alignment.Bottom) {
                     trend.forEach { (m, s) ->
-                        Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.weight(1f)) {
+                        // Bars mean nothing to a screen reader: each month is read as one line with its numbers.
+                        val spoken = stringResource(R.string.chart_month_desc, m.format(fmt), money(s.income), money(s.expenses))
+                        Column(horizontalAlignment = Alignment.CenterHorizontally,
+                            modifier = Modifier.weight(1f).clearAndSetSemantics { contentDescription = spoken }) {
                             Row(Modifier.height(110.dp), verticalAlignment = Alignment.Bottom) {
                                 VBar(s.income.minor.toFloat() / max, finance.income)
                                 Spacer(Modifier.width(3.dp))

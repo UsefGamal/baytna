@@ -25,6 +25,14 @@ service cloud.firestore {
       return /databases/$(database)/documents/households/$(hid);
     }
 
+    // Erasing a household (account deletion by its last member). Allowed to an active member who is the owner, or
+    // to any active member once the owner has left. The app only erases when no other member remains.
+    function canErase(hid) {
+      let ownerUid = get(householdPath(hid)).data.ownerUid;
+      return isMember(hid) && (ownerUid == request.auth.uid
+        || !exists(/databases/$(database)/documents/households/$(hid)/memberships/$(ownerUid)));
+    }
+
     // users/{uid}: which household this account belongs to. Only the account itself can see or change it,
     // and it only points at a household where the account really is a member.
     match /users/{uid} {
@@ -36,7 +44,8 @@ service cloud.firestore {
         && request.resource.data.updatedAt == request.time
         && existsAfter(/databases/$(database)/documents/households/$(request.resource.data.householdId)/memberships/$(uid))
         && getAfter(/databases/$(database)/documents/households/$(request.resource.data.householdId)/memberships/$(uid)).data.memberId == request.resource.data.memberId;
-      allow delete: if false;
+      // Account deletion.
+      allow delete: if signedIn() && request.auth.uid == uid;
     }
 
     match /households/{hid} {
@@ -48,7 +57,8 @@ service cloud.firestore {
         && request.resource.data.ownerUid == request.auth.uid
         && request.resource.data.createdAt == request.time
         && existsAfter(membershipPath(hid));
-      allow update, delete: if false;
+      allow update: if false;
+      allow delete: if canErase(hid);
 
       match /memberships/{uid} {
         allow read: if isMember(hid);
@@ -87,11 +97,13 @@ service cloud.firestore {
         }
 
         allow create: if signedIn() && validMembership() && (ownerBootstrap() || inviteJoin());
-        allow update, delete: if false;
+        allow update: if false;
+        // Leaving the household (account deletion): only your own membership.
+        allow delete: if signedIn() && request.auth.uid == uid;
       }
 
-      // One document per synced row: {type}_{id}. Versions only move forward by one; nothing is ever deleted
-      // (deletions are tombstones), so every change is auditable and replayable.
+      // One document per synced row: {type}_{id}. Versions only move forward by one; deletions are tombstones, so every
+      // change is auditable and replayable. Rows are removed only when the household is erased (see canErase).
       match /entities/{key} {
         allow read: if isMember(hid);
 
@@ -122,7 +134,7 @@ service cloud.firestore {
           && resource.data.type != 'activity'
           && request.resource.data.type == resource.data.type
           && request.resource.data.id == resource.data.id;
-        allow delete: if false;
+        allow delete: if canErase(hid);
       }
 
       // Processed operation ids. Write-once.
@@ -133,7 +145,8 @@ service cloud.firestore {
           && request.resource.data.entityKey is string
           && request.resource.data.by == request.auth.uid
           && request.resource.data.at == request.time;
-        allow update, delete: if false;
+        allow update: if false;
+        allow delete: if canErase(hid);
       }
     }
 
@@ -170,7 +183,7 @@ service cloud.firestore {
           && request.resource.data.usedAt == request.time
           && existsAfter(/databases/$(database)/documents/households/$(resource.data.householdId)/memberships/$(request.auth.uid)))
       );
-      allow delete: if false;
+      allow delete: if signedIn() && canErase(resource.data.householdId);
     }
   }
 }

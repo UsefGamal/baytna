@@ -47,6 +47,18 @@ class FakeCloud : CloudBackend {
 
     override suspend fun listMemberships(householdId: String) = memberships[householdId].orEmpty()
 
+    override suspend fun leaveHousehold(uid: String, householdId: String, erase: Boolean) {
+        if (erase) {
+            entities.keys.removeAll { it.startsWith("$householdId/") }
+            invites.values.removeAll { it.householdId == householdId }
+        }
+        memberships[householdId]?.removeAll { it.uid == uid }
+    }
+
+    override suspend fun deleteUserLink(uid: String) {
+        links.remove(uid)
+    }
+
     override suspend fun push(uid: String, op: SyncOutboxEntity, payload: String): PushResult {
         if (links[uid]?.householdId != op.householdId) return PushResult.Rejected("PERMISSION_DENIED")
         val key = "${op.householdId}/${entityKey(op.entityType, op.entityId)}"

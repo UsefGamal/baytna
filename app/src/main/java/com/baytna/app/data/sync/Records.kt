@@ -127,7 +127,7 @@ internal object Records {
         frequency = Frequency.valueOf(j.getString("frequency")), interval = j.intOrNull("interval") ?: 1,
         startDate = j.getString("startDate"), nextDueDate = j.getString("nextDueDate"), isActive = j.getBoolean("isActive"),
         createdAt = j.long("createdAt", j.getLong("updatedAt")), updatedAt = j.getLong("updatedAt"), version = j.getInt("version"),
-        deletedAt = j.longOrNull("deletedAt"),
+        deletedAt = j.longOrNull("deletedAt"), destinationAccountId = j.str("destinationAccountId"),
     )
 
     fun activity(j: JSONObject) = ActivityEntity(

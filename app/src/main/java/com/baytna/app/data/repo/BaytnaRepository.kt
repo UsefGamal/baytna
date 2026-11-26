@@ -140,10 +140,12 @@ data class RecurringInput(
     val id: String? = null,
     val expectedVersion: Int? = null,
     val name: String,
-    /** INCOME or EXPENSE. */
+    /** INCOME, EXPENSE or TRANSFER. */
     val type: TransactionType,
     val amount: Money,
     val accountId: String,
+    /** Required for TRANSFER (must differ from [accountId]); ignored otherwise. */
+    val destinationAccountId: String? = null,
     val categoryId: String?,
     val paidByUserId: String,
     val ownership: Ownership,
@@ -733,7 +735,8 @@ class BaytnaRepository(
         val errors = mutableListOf<ValidationError>()
         if (input.name.isBlank()) errors += ValidationError.NAME_REQUIRED
         if (!input.amount.isPositive) errors += ValidationError.AMOUNT_NOT_POSITIVE
-        if (input.type != TransactionType.INCOME && input.type != TransactionType.EXPENSE) errors += ValidationError.INVALID_REFERENCE
+        if (input.type !in RECURRING_TYPES) errors += ValidationError.INVALID_REFERENCE
+        val isTransfer = input.type == TransactionType.TRANSFER
         val existing = input.id?.let { planning.getRule(it) }
         if (input.id != null) {
             if (existing == null || existing.householdId != household.id || existing.deletedAt != null) {
@@ -745,13 +748,25 @@ class BaytnaRepository(
         if (account == null || account.householdId != household.id || (!account.isActive && existing?.accountId != input.accountId)) {
             errors += ValidationError.ACCOUNT_REQUIRED
         }
-        val category = input.categoryId?.let { categories.get(it) }
-        val wantedType = if (input.type == TransactionType.INCOME) CategoryType.INCOME else CategoryType.EXPENSE
-        if (category == null || category.householdId != household.id) errors += ValidationError.CATEGORY_REQUIRED
-        else if (category.type != wantedType) errors += ValidationError.CATEGORY_TYPE_MISMATCH
+        // Transfers move money between two of the household's accounts; they have no category and are always shared.
+        val destinationId = if (isTransfer) input.destinationAccountId else null
+        val categoryId = if (isTransfer) null else input.categoryId
+        val ownership = if (isTransfer) Ownership.SHARED else input.ownership
+        if (isTransfer) {
+            val destination = destinationId?.let { accounts.get(it) }
+            if (destination == null || destination.householdId != household.id ||
+                (!destination.isActive && existing?.destinationAccountId != destinationId)) {
+                errors += ValidationError.DESTINATION_REQUIRED
+            } else if (destinationId == input.accountId) errors += ValidationError.SAME_SOURCE_AND_DESTINATION
+        } else {
+            val category = categoryId?.let { categories.get(it) }
+            val wantedType = if (input.type == TransactionType.INCOME) CategoryType.INCOME else CategoryType.EXPENSE
+            if (category == null || category.householdId != household.id) errors += ValidationError.CATEGORY_REQUIRED
+            else if (category.type != wantedType) errors += ValidationError.CATEGORY_TYPE_MISMATCH
+        }
         if (members.get(input.paidByUserId)?.householdId != household.id) errors += ValidationError.INVALID_REFERENCE
-        val personalOwner = if (input.ownership == Ownership.PERSONAL) input.personalOwnerUserId else null
-        if (input.ownership == Ownership.PERSONAL && (personalOwner == null || members.get(personalOwner)?.householdId != household.id)) {
+        val personalOwner = if (ownership == Ownership.PERSONAL) input.personalOwnerUserId else null
+        if (ownership == Ownership.PERSONAL && (personalOwner == null || members.get(personalOwner)?.householdId != household.id)) {
             errors += ValidationError.PERSONAL_OWNER_REQUIRED
         }
         if (errors.isNotEmpty()) throw ValidationException(errors.distinct())
@@ -761,10 +776,10 @@ class BaytnaRepository(
         if (existing == null) {
             val r = RecurringRuleEntity(
                 id = newId(), householdId = household.id, name = input.name.trim(), type = input.type, amountMinor = input.amount.minor,
-                accountId = input.accountId, categoryId = input.categoryId, paidByUserId = input.paidByUserId,
-                ownership = input.ownership, personalOwnerUserId = personalOwner, frequency = input.frequency, interval = interval,
+                accountId = input.accountId, categoryId = categoryId, paidByUserId = input.paidByUserId,
+                ownership = ownership, personalOwnerUserId = personalOwner, frequency = input.frequency, interval = interval,
                 startDate = input.startDate.toString(), nextDueDate = input.startDate.toString(), isActive = true,
-                createdAt = t, updatedAt = t,
+                createdAt = t, updatedAt = t, destinationAccountId = destinationId,
             )
             planning.insertRule(r)
             enqueue(household.id, Records.RULE, r.id, SyncOutboxEntity.OP_CREATE, Payloads.of(r), null)
@@ -778,9 +793,10 @@ class BaytnaRepository(
             } else existing.nextDueDate
             val u = existing.copy(
                 name = input.name.trim(), type = input.type, amountMinor = input.amount.minor, accountId = input.accountId,
-                categoryId = input.categoryId, paidByUserId = input.paidByUserId, ownership = input.ownership,
+                categoryId = categoryId, paidByUserId = input.paidByUserId, ownership = ownership,
                 personalOwnerUserId = personalOwner, frequency = input.frequency, interval = interval,
                 startDate = input.startDate.toString(), nextDueDate = nextDue, updatedAt = t, version = existing.version + 1,
+                destinationAccountId = destinationId,
             )
             planning.updateRule(u)
             enqueue(household.id, Records.RULE, u.id, SyncOutboxEntity.OP_UPDATE, Payloads.of(u), existing.version)
@@ -819,7 +835,8 @@ class BaytnaRepository(
         if (transactions.get(txId) == null) {
             saveTransaction(
                 TransactionInput(
-                    type = r.type, amount = amount ?: Money(r.amountMinor), accountId = r.accountId, destinationAccountId = null,
+                    type = r.type, amount = amount ?: Money(r.amountMinor), accountId = r.accountId,
+                    destinationAccountId = r.destinationAccountId.takeIf { r.type == TransactionType.TRANSFER },
                     categoryId = r.categoryId, paidByUserId = r.paidByUserId, ownership = r.ownership,
                     personalOwnerUserId = r.personalOwnerUserId, occurredAt = noonCairo(due), note = r.name,
                     originalTransactionId = null, actorUserId = actorUserId, fixedId = txId,
@@ -895,5 +912,8 @@ class BaytnaRepository(
     companion object {
         /** Activity action for a skipped recurring occurrence. */
         const val ACTION_SKIP = "SKIP"
+
+        /** Transaction types a recurring item can post. */
+        val RECURRING_TYPES = setOf(TransactionType.INCOME, TransactionType.EXPENSE, TransactionType.TRANSFER)
     }
 }

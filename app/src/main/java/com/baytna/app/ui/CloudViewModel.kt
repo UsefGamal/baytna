@@ -97,6 +97,9 @@ class CloudViewModel(private val container: AppContainer) : ViewModel() {
         freshInvite.value = null
         sync.signOut()
     }
+    fun deleteAccount(password: String) {
+        act(onSuccess = { freshInvite.value = null; infoChannel.trySend(R.string.account_deleted) }) { sync.deleteAccount(password) }
+    }
     fun turnOnSync() { act(onSuccess = { refresh() }) { sync.turnOnSync() } }
     fun join(code: String) { act { sync.join(code) } }
     fun restore() { act { sync.restore() } }

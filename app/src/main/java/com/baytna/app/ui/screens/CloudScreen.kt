@@ -30,6 +30,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -87,6 +88,7 @@ fun CloudScreen(
 
     val linked = household != null && settings.linkedHouseholdId == household.id
     var confirmJoinCode by rememberSaveable { mutableStateOf<String?>(null) }
+    var confirmDelete by rememberSaveable { mutableStateOf(false) }
 
     Column(Modifier.fillMaxSize().imePadding()) {
         TopAppBar(
@@ -110,6 +112,9 @@ fun CloudScreen(
                 SectionCard {
                     Text(stringResource(R.string.signed_in_as, u.email ?: u.uid), style = MaterialTheme.typography.bodyMedium)
                     TextButton(onClick = vm::signOut) { Text(stringResource(R.string.sign_out)) }
+                    TextButton(onClick = { confirmDelete = true }, enabled = !busy) {
+                        Text(stringResource(R.string.delete_account), color = MaterialTheme.colorScheme.error)
+                    }
                 }
             }
             if (linked) {
@@ -178,6 +183,28 @@ fun CloudScreen(
                 }
             }
         }
+    }
+
+    if (confirmDelete) {
+        val u = user
+        var password by remember { mutableStateOf("") }
+        AlertDialog(
+            onDismissRequest = { confirmDelete = false },
+            title = { Text(stringResource(R.string.delete_account_title)) },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Text(stringResource(R.string.delete_account_body, u?.email ?: ""))
+                    OutlinedTextField(password, { password = it }, Modifier.fillMaxWidth(), singleLine = true,
+                        label = { Text(stringResource(R.string.password)) }, visualTransformation = PasswordVisualTransformation())
+                }
+            },
+            confirmButton = {
+                TextButton(onClick = { confirmDelete = false; vm.deleteAccount(password) }, enabled = password.isNotEmpty()) {
+                    Text(stringResource(R.string.delete_account_confirm), color = MaterialTheme.colorScheme.error)
+                }
+            },
+            dismissButton = { TextButton(onClick = { confirmDelete = false }) { Text(stringResource(R.string.cancel)) } },
+        )
     }
 
     confirmJoinCode?.let { code ->

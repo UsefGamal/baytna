@@ -166,6 +166,11 @@
     <string name="file_too_large">This file is too large.</string>
     <string name="working">Working…</string>
     <string name="chart_month_desc">%1$s: income %2$s, expenses %3$s</string>
+    <string name="delete_account">Delete my cloud account</string>
+    <string name="delete_account_title">Delete your cloud account?</string>
+    <string name="delete_account_body">This deletes the sign-in %1$s and turns off sync. If your partner is still in the household, they keep the shared data. If you are the last member, the household\'s data in the cloud is deleted too. Data on this phone stays until you uninstall the app. Enter your password to confirm.</string>
+    <string name="delete_account_confirm">Delete account</string>
+    <string name="account_deleted">Cloud account deleted</string>
     <string name="appearance">Appearance</string>
     <string name="theme_system">System</string>
     <string name="theme_light">Light</string>

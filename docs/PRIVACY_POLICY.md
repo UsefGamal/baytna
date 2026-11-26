@@ -24,7 +24,7 @@ Reminders are optional and are worked out on your phone. No push server is invol
 ## Deleting your data
 
 - Data on your phone: uninstall the app or clear its storage.
-- Cloud data and your account: email the support address listed on the Play Store page from your account's email address. We delete the account and its household data within 30 days.
+- Cloud data and your account: in the app, **More → Cloud sync → Delete my cloud account**. Without the app, email the support address listed on the Play Store page from your account's email address and we delete it within 30 days. Details: [Delete your Baytna account](DELETE_ACCOUNT.md).
 
 ## Children
 

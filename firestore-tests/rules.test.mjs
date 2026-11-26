@@ -156,11 +156,71 @@ describe('entities', () => {
     await assertFails(pushOp(db('mallory'), 'mallory', 'op1'));
   });
 
-  test('records and operations cannot be deleted', async () => {
+  test('operations cannot be edited', async () => {
     await pushOp(db('alice'), 'alice', 'op1');
-    await assertFails(deleteDoc(doc(db('alice'), 'households', HID, 'entities', 'transaction_t1')));
-    await assertFails(deleteDoc(doc(db('alice'), 'households', HID, 'ops', 'op1')));
     await assertFails(updateDoc(doc(db('alice'), 'households', HID, 'ops', 'op1'), { by: 'alice' }));
+  });
+});
+
+describe('account deletion', () => {
+  async function withPartner() {
+    await createHousehold(db('alice'), 'alice');
+    await setDoc(doc(db('alice'), 'invites', 'h1'), invite('alice'));
+    await join(db('bob'), 'bob', 'h1');
+    await pushOp(db('alice'), 'alice', 'op1');
+  }
+
+  test('a member cannot erase records while the owner is still in the household', async () => {
+    await withPartner();
+    await assertFails(deleteDoc(doc(db('bob'), 'households', HID, 'entities', 'transaction_t1')));
+    await assertFails(deleteDoc(doc(db('bob'), 'households', HID, 'ops', 'op1')));
+    await assertFails(deleteDoc(doc(db('bob'), 'households', HID)));
+  });
+
+  test('strangers cannot erase anything', async () => {
+    await withPartner();
+    await assertFails(deleteDoc(doc(db('mallory'), 'households', HID, 'entities', 'transaction_t1')));
+    await assertFails(deleteDoc(doc(db('mallory'), 'households', HID)));
+    await assertFails(deleteDoc(doc(db('mallory'), 'households', HID, 'memberships', 'alice')));
+    await assertFails(deleteDoc(doc(db('mallory'), 'users', 'alice')));
+    await assertFails(deleteDoc(doc(db('mallory'), 'invites', 'h1')));
+  });
+
+  test('anyone can leave and delete their own link, but not someone else\'s', async () => {
+    await withPartner();
+    await assertFails(deleteDoc(doc(db('bob'), 'households', HID, 'memberships', 'alice')));
+    await assertFails(deleteDoc(doc(db('bob'), 'users', 'alice')));
+    await assertSucceeds(deleteDoc(doc(db('alice'), 'households', HID, 'memberships', 'alice')));
+    await assertSucceeds(deleteDoc(doc(db('alice'), 'users', 'alice')));
+    // Alice is out: she can no longer read or erase the household.
+    await assertFails(getDoc(doc(db('alice'), 'households', HID)));
+    await assertFails(deleteDoc(doc(db('alice'), 'households', HID, 'entities', 'transaction_t1')));
+  });
+
+  test('the last member erases the household once the owner has left', async () => {
+    await withPartner();
+    await deleteDoc(doc(db('alice'), 'households', HID, 'memberships', 'alice'));
+    const bob = db('bob');
+    await assertSucceeds(deleteDoc(doc(bob, 'households', HID, 'entities', 'transaction_t1')));
+    await assertSucceeds(deleteDoc(doc(bob, 'households', HID, 'ops', 'op1')));
+    await assertSucceeds(deleteDoc(doc(bob, 'invites', 'h1')));
+    await assertSucceeds(deleteDoc(doc(bob, 'households', HID)));
+    await assertSucceeds(deleteDoc(doc(bob, 'households', HID, 'memberships', 'bob')));
+    await assertSucceeds(deleteDoc(doc(bob, 'users', 'bob')));
+  });
+
+  test('an owner alone erases the household in batches', async () => {
+    await createHousehold(db('alice'), 'alice');
+    await pushOp(db('alice'), 'alice', 'op1');
+    await pushOp(db('alice'), 'alice', 'op2', { id: 't2' });
+    const fs = db('alice');
+    const b = writeBatch(fs);
+    b.delete(doc(fs, 'households', HID, 'entities', 'transaction_t1'));
+    b.delete(doc(fs, 'households', HID, 'entities', 'transaction_t2'));
+    b.delete(doc(fs, 'households', HID, 'ops', 'op1'));
+    b.delete(doc(fs, 'households', HID, 'ops', 'op2'));
+    await assertSucceeds(b.commit());
+    await assertSucceeds(deleteDoc(doc(fs, 'households', HID)));
   });
 });
 

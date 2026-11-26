@@ -6,11 +6,13 @@ import com.google.firebase.FirebaseApp
 import com.google.firebase.FirebaseNetworkException
 import com.google.firebase.FirebaseTooManyRequestsException
 import com.google.firebase.Timestamp
+import com.google.firebase.auth.EmailAuthProvider
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.FirebaseAuthInvalidCredentialsException
 import com.google.firebase.auth.FirebaseAuthInvalidUserException
 import com.google.firebase.auth.FirebaseAuthUserCollisionException
 import com.google.firebase.auth.FirebaseAuthWeakPasswordException
+import com.google.firebase.firestore.CollectionReference
 import com.google.firebase.firestore.DocumentSnapshot
 import com.google.firebase.firestore.FieldValue
 import com.google.firebase.firestore.FirebaseFirestore
@@ -43,6 +45,9 @@ class FirebaseCloud private constructor(
 ) : CloudAuth, CloudBackend {
 
     companion object {
+        /** Documents per delete batch, well under Firestore's 500-write limit. */
+        private const val DELETE_BATCH = 200
+
         /** Null when this build has no google-services.json; the app then stays local-only. */
         fun createOrNull(context: Context): FirebaseCloud? = runCatching { create(context) }.getOrNull()
 
@@ -79,6 +84,16 @@ class FirebaseCloud private constructor(
     }
 
     override fun signOut() = auth.signOut()
+
+    override suspend fun reauthenticate(password: String) = authCall {
+        val u = auth.currentUser ?: throw CloudException(CloudError.NOT_SIGNED_IN)
+        val email = u.email ?: throw CloudException(CloudError.INVALID_CREDENTIALS)
+        u.reauthenticate(EmailAuthProvider.getCredential(email, password)).await()
+    }
+
+    override suspend fun deleteUser() = authCall {
+        auth.currentUser?.delete()?.await()
+    }
 
     private suspend fun authCall(block: suspend () -> Any?) {
         try {
@@ -202,6 +217,33 @@ class FirebaseCloud private constructor(
                 status = d.getString("status") ?: "ACTIVE",
             )
         }
+    }
+
+    override suspend fun leaveHousehold(uid: String, householdId: String, erase: Boolean) = firestoreCall {
+        val hh = household(householdId)
+        if (erase) {
+            // Children first: the rules check membership and the household document on every delete.
+            deleteAll(hh.collection("entities"))
+            deleteAll(hh.collection("ops"))
+            val invites = fs.collection("invites").whereEqualTo("householdId", householdId).get(Source.SERVER).await().documents
+            invites.chunked(DELETE_BATCH).forEach { page -> fs.batch().apply { page.forEach { delete(it.reference) } }.commit().await() }
+            hh.delete().await()
+        }
+        hh.collection("memberships").document(uid).delete().await()
+        Unit
+    }
+
+    private suspend fun deleteAll(col: CollectionReference) {
+        while (true) {
+            val page = col.limit(DELETE_BATCH.toLong()).get(Source.SERVER).await().documents
+            if (page.isEmpty()) return
+            fs.batch().apply { page.forEach { delete(it.reference) } }.commit().await()
+        }
+    }
+
+    override suspend fun deleteUserLink(uid: String) = firestoreCall {
+        userDoc(uid).delete().await()
+        Unit
     }
 
     // ------------------------------------------------------------------ records

@@ -129,14 +129,13 @@ Answers match the current build (Firebase Auth and Firestore only; no analytics,
 - **Government / health / news apps:** No.
 - **Permissions:** `POST_NOTIFICATIONS` (opt-in reminders), `INTERNET` (sync). No sensitive permissions.
 
-## Account deletion (needed before submitting)
+## Account deletion
 
-Play requires apps that let users create an account to offer account deletion **both in the app and through a web link**. Baytna does not have this yet. Options, smallest first:
+Play asks for an in-app path and a web link.
 
-1. A web link: a short page (or a section in the privacy policy) saying to email the support address from the account's email, with the promise to delete the Firebase user and household data within 30 days.
-2. An in-app "Delete my cloud account" action on the sync screen that removes the member's link and the Firebase user (and the household when they are the last member).
-
-Both are needed for the declaration; this is a follow-up task, not part of this listing.
+- **In the app:** More → Cloud sync → Delete my cloud account (asks for the password).
+- **Web link for the console:** `https://github.com/UsefGamal/baytna/blob/main/docs/DELETE_ACCOUNT.md`
+- **Data deleted:** the sign-in; the household's cloud data when the user is the last member. **Data kept:** shared data stays for a partner who is still in the household (it is theirs too); nothing else is retained.
 
 ## Release notes for the first Play release
 

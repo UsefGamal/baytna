@@ -1,6 +1,7 @@
 package com.baytna.app.ui
 
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.consumeWindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
@@ -125,7 +126,9 @@ private fun MainScaffold(vm: MainViewModel, state: AppState.Ready) {
             }
         },
     ) { padding ->
-        NavHost(nav, startDestination = "home", modifier = Modifier.padding(padding)) {
+        // Consume what the scaffold already padded, so top bars and imePadding inside screens don't add the
+        // status bar or navigation bar a second time.
+        NavHost(nav, startDestination = "home", modifier = Modifier.padding(padding).consumeWindowInsets(padding)) {
             composable("home") { HomeScreen(vm, state, nav) }
             composable("transactions") { TransactionsScreen(vm, state, nav) }
             composable("budgets") { BudgetsScreen(vm, state) }

@@ -254,6 +254,25 @@ private fun AllocationDialog(
         it.type == CategoryType.EXPENSE && it.isActive && (it.id !in usedCategoryIds || it.id == existing?.categoryId)
     }
     val canSave = parsed != null && (!isCategory || categoryId != null)
+    var confirmRemove by remember { mutableStateOf(false) }
+
+    if (confirmRemove && existing != null) {
+        val what = existing.categoryId?.let { state.snapshot.categoriesById[it] }?.displayName()
+            ?: existing.label?.takeIf { it.isNotBlank() } ?: allocationTypeLabel(edit.type)
+        AlertDialog(
+            onDismissRequest = { confirmRemove = false },
+            title = { Text(stringResource(R.string.remove_allocation_q, what, money(Money(existing.allocatedMinor)))) },
+            text = { Text(stringResource(R.string.remove_allocation_body)) },
+            confirmButton = {
+                TextButton(onClick = {
+                    onDismiss()
+                    vm.launch { deleteAllocation(existing.id, existing.version) }
+                }) { Text(stringResource(R.string.remove), color = MaterialTheme.colorScheme.error) }
+            },
+            dismissButton = { TextButton(onClick = { confirmRemove = false }) { Text(stringResource(R.string.cancel)) } },
+        )
+        return
+    }
 
     AlertDialog(
         onDismissRequest = onDismiss,
@@ -272,10 +291,7 @@ private fun AllocationDialog(
                     OutlinedTextField(label, { label = it }, singleLine = true, label = { Text(stringResource(R.string.label_optional)) })
                 }
                 if (existing != null) {
-                    TextButton(onClick = {
-                        onDismiss()
-                        vm.launch { deleteAllocation(existing.id, existing.version) }
-                    }) { Text(stringResource(R.string.remove), color = MaterialTheme.colorScheme.error) }
+                    TextButton(onClick = { confirmRemove = true }) { Text(stringResource(R.string.remove), color = MaterialTheme.colorScheme.error) }
                 }
             }
         },

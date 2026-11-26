@@ -11,6 +11,10 @@ import androidx.compose.ui.graphics.Color
 
 val Emerald = Color(0xFF16A36A)
 private val EmeraldDark = Color(0xFF0E7A4F)
+
+// Light theme text colors are darker than the brand tones so that text and white-on-primary buttons stay at
+// 4.5:1 or more on every light surface (background, cards and the high container).
+private val EmeraldText = Color(0xFF0E7A4F)
 private val DarkBackground = Color(0xFF101713)
 private val DarkSurface = Color(0xFF19231D)
 private val LightBackground = Color(0xFFF7F9F7)
@@ -25,7 +29,7 @@ val LocalFinanceColors = staticCompositionLocalOf {
 }
 
 private val LightColors = lightColorScheme(
-    primary = Emerald,
+    primary = EmeraldText,
     onPrimary = Color.White,
     primaryContainer = Color(0xFFCDEFDD),
     onPrimaryContainer = Color(0xFF00391F),
@@ -37,7 +41,7 @@ private val LightColors = lightColorScheme(
     surfaceContainer = Color(0xFFFFFFFF),
     surfaceContainerLow = Color(0xFFFFFFFF),
     surfaceContainerHigh = Color(0xFFEDF2EE),
-    error = Color(0xFFC94A4A),
+    error = Color(0xFFB3261E),
 )
 
 private val DarkColors = darkColorScheme(
@@ -61,7 +65,7 @@ fun BaytnaTheme(darkTheme: Boolean, content: @Composable () -> Unit) {
     val finance = if (darkTheme) {
         FinanceColors(income = Color(0xFF3CC68A), expense = Color(0xFFF08A8A), warning = Color(0xFFF0B85C), transfer = Color(0xFF8AB0F5))
     } else {
-        FinanceColors(income = Emerald, expense = Color(0xFFD25555), warning = Color(0xFFC98A1F), transfer = Color(0xFF3F6FD1))
+        FinanceColors(income = EmeraldText, expense = Color(0xFFB03E3E), warning = Color(0xFF8F6210), transfer = Color(0xFF3563C4))
     }
     CompositionLocalProvider(LocalFinanceColors provides finance) {
         MaterialTheme(colorScheme = if (darkTheme) DarkColors else LightColors, content = content)

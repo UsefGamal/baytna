@@ -39,6 +39,7 @@ import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.rememberDatePickerState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -117,6 +118,8 @@ fun TransactionEditScreen(
     var saving by remember { mutableStateOf(false) }
     val amountFocus = remember { FocusRequester() }
     val locale = currentLocale()
+    // A new entry starts with the keyboard on the amount: it is the one field every transaction needs.
+    LaunchedEffect(Unit) { if (editId == null) runCatching { amountFocus.requestFocus() } }
 
     val parsedAmount = MoneyParser.parse(amountText)
     val date = LocalDate.ofEpochDay(dateEpochDay)
@@ -153,7 +156,7 @@ fun TransactionEditScreen(
             categoryId = if (type == TransactionType.TRANSFER) null else categoryId,
             paidByUserId = paidBy,
             ownership = if (type == TransactionType.TRANSFER) Ownership.SHARED else ownership,
-            personalOwnerUserId = if (ownership == Ownership.PERSONAL) ownerId else null,
+            personalOwnerUserId = if (type != TransactionType.TRANSFER && ownership == Ownership.PERSONAL) ownerId else null,
             occurredAt = occurredAt,
             note = note,
             originalTransactionId = if (type == TransactionType.REFUND) originalId else null,
@@ -249,7 +252,9 @@ fun TransactionEditScreen(
             Label(stringResource(if (type == TransactionType.TRANSFER) R.string.from_account else R.string.account))
             ChipRow {
                 activeAccounts.forEach { a ->
-                    FilterChip(accountId == a.id, { accountId = a.id }, label = { Text(a.name) })
+                    // The destination list hides the source account, so a destination equal to the new source would
+                    // stay selected out of sight and fail on save.
+                    FilterChip(accountId == a.id, { accountId = a.id; if (destinationId == a.id) destinationId = null }, label = { Text(a.name) })
                 }
             }
             if (type == TransactionType.TRANSFER) {
@@ -324,7 +329,7 @@ fun TransactionEditScreen(
                         dateEpochDay = Instant.ofEpochMilli(it).atZone(ZoneOffset.UTC).toLocalDate().toEpochDay()
                     }
                     showDatePicker = false
-                }) { Text(stringResource(R.string.ok)) }
+                }) { Text(stringResource(R.string.set_date)) }
             },
             dismissButton = { TextButton(onClick = { showDatePicker = false }) { Text(stringResource(R.string.cancel)) } },
         ) { DatePicker(pickerState) }
@@ -333,7 +338,13 @@ fun TransactionEditScreen(
     if (confirmDelete && live != null) {
         AlertDialog(
             onDismissRequest = { confirmDelete = false },
-            title = { Text(stringResource(R.string.delete_transaction_q)) },
+            title = {
+                val what = when {
+                    live.type == TransactionType.TRANSFER -> typeLabel(live.type)
+                    else -> live.categoryId?.let { snapshot.categoriesById[it] }?.displayName() ?: typeLabel(live.type)
+                }
+                Text(stringResource(R.string.delete_transaction_named, what, money(Money(live.amountMinor))))
+            },
             text = { Text(stringResource(R.string.delete_transaction_body)) },
             confirmButton = {
                 TextButton(onClick = {

@@ -3,6 +3,7 @@ package com.baytna.app.ui.screens
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -23,6 +24,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -43,6 +45,10 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
@@ -276,12 +282,23 @@ private fun CategoryDialog(vm: MainViewModel, state: AppState.Ready, existing: C
                     }
                 }
                 FlowChips {
-                    CategoryIcons.palette.forEach { c ->
+                    CategoryIcons.palette.forEachIndexed { i, c ->
+                        // 48dp touch target around a 36dp swatch; the selected one also shows a tick, not only a ring.
+                        val colorLabel = stringResource(R.string.color_n, i + 1)
                         Box(
-                            Modifier.padding(4.dp).size(32.dp).background(Color(c), CircleShape)
-                                .then(if (c == color) Modifier.border(3.dp, MaterialTheme.colorScheme.onSurface, CircleShape) else Modifier)
-                                .clickable { color = c },
-                        )
+                            Modifier.size(48.dp).clip(CircleShape)
+                                .selectable(selected = c == color, role = Role.RadioButton) { color = c }
+                                .semantics { contentDescription = colorLabel },
+                            contentAlignment = Alignment.Center,
+                        ) {
+                            Box(
+                                Modifier.size(36.dp).background(Color(c), CircleShape)
+                                    .then(if (c == color) Modifier.border(3.dp, MaterialTheme.colorScheme.onSurface, CircleShape) else Modifier),
+                                contentAlignment = Alignment.Center,
+                            ) {
+                                if (c == color) Icon(Icons.Filled.Check, null, tint = Color(0xFF111111), modifier = Modifier.size(20.dp))
+                            }
+                        }
                     }
                 }
             }

@@ -83,9 +83,7 @@
     <string name="today">اليوم</string>
     <string name="note">ملاحظة</string>
     <string name="save">حفظ</string>
-    <string name="ok">تم</string>
     <string name="cancel">إلغاء</string>
-    <string name="delete_transaction_q">حذف هذه المعاملة؟</string>
     <string name="delete_transaction_body">لن تُحسب في الأرصدة والتقارير. يمكنك استعادتها من المعاملات › إظهار المحذوف.</string>
     <string name="no_budget_for">لا توجد ميزانية لشهر %1$s</string>
     <string name="budget_explainer">الميزانية تجمع بين حدود الفئات وخطة صفرية: خصص كل جنيه من الدخل المخطط، بما في ذلك الادخار والاحتياطي.</string>
@@ -367,4 +365,12 @@
     <string name="reminder_budget_left">المتبقي هذا الشهر: %1$s</string>
     <string name="due_soon">مستحق قريباً</string>
     <string name="planning">التخطيط</string>
+    <!-- UI/UX pass -->
+    <string name="set_date">تحديد التاريخ</string>
+    <string name="previous_year">السنة السابقة</string>
+    <string name="next_year">السنة التالية</string>
+    <string name="color_n">اللون %1$d</string>
+    <string name="delete_transaction_named">حذف %1$s · %2$s؟</string>
+    <string name="remove_allocation_q">إزالة بند %1$s من الميزانية (%2$s)؟</string>
+    <string name="remove_allocation_body">المصروفات المسجلة تبقى كما هي. تتغير خطة هذا الشهر فقط.</string>
 </resources>

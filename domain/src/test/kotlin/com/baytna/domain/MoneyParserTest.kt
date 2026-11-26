@@ -19,6 +19,11 @@ class MoneyParserTest {
     @Test fun rejectsLoneDot() = assertNull(MoneyParser.parse("."))
     @Test fun rejectsNegative() = assertNull(MoneyParser.parse("-5"))
     @Test fun rejectsTwoSeparators() = assertNull(MoneyParser.parse("1.2.3"))
+    @Test fun commaAsDecimal() = assertEquals(Money(1250), MoneyParser.parse("12,5"))
+    @Test fun commaThousands() = assertEquals(Money(125_000), MoneyParser.parse("1,250"))
+    @Test fun commaThousandsWithDecimals() = assertEquals(Money(125_050), MoneyParser.parse("1,250.50"))
+    @Test fun manyCommaGroups() = assertEquals(Money(1_250_000_00), MoneyParser.parse("1,250,000"))
+    @Test fun rejectsBadCommaGroups() = assertNull(MoneyParser.parse("12,50.5"))
     @Test fun noFloatingPointDrift() = assertEquals(Money(30), MoneyParser.parse("0.30"))
 
     @Test fun editableRoundTrip() {

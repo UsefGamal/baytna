@@ -18,7 +18,7 @@ members, categories, backup and settings.
 
 -   Onboarding: welcome, sign-in, create/join household, language, EGP,
     initial accounts, categories, optional budget, invitation.
--   Home: month selector, household balance, income, expenses, net cash
+-   Home: month selector, swipeable per-account cards (balance and this month's activity, never summed), income, expenses, net cash
     flow, budget progress, category summary, recent transactions,
     activity, sync status.
 -   Transactions: date-grouped list, search and filters,

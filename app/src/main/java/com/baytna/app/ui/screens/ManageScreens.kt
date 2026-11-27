@@ -94,7 +94,7 @@ internal fun SubScreen(title: String, nav: NavController, actions: @Composable (
 }
 
 @Composable
-private fun accountTypeLabel(t: AccountType) = stringResource(
+internal fun accountTypeLabel(t: AccountType) = stringResource(
     when (t) {
         AccountType.CASH -> R.string.acct_cash
         AccountType.BANK -> R.string.acct_bank
@@ -116,11 +116,6 @@ fun AccountsScreen(vm: MainViewModel, state: AppState.Ready, nav: NavController)
         IconButton(onClick = { creating = true }) { Icon(Icons.Filled.Add, stringResource(R.string.add_account)) }
     }) {
         LazyColumn(contentPadding = PaddingValues(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            item {
-                SectionCard(title = stringResource(R.string.household_balance)) {
-                    Text(money(snapshot.totalBalance), style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
-                }
-            }
             items(snapshot.accounts, key = { it.id }) { a ->
                 ListItem(
                     headlineContent = { Text(a.name) },

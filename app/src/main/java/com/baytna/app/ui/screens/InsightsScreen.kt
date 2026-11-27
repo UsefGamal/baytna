@@ -49,20 +49,21 @@ fun InsightsScreen(vm: MainViewModel, state: AppState.Ready) {
     val snapshot = state.snapshot
     val finance = LocalFinanceColors.current
     val locale = currentLocale()
-    val monthLedger = remember(snapshot, month) { snapshot.ledgerIn(Period.month(month)) }
+    val startDay = state.settings.monthStartDay
+    val monthLedger = remember(snapshot, month, startDay) { snapshot.ledgerIn(Period.month(month, startDay)) }
     val flow = remember(monthLedger) { CashFlowCalculator.summarize(monthLedger) }
     val byCategory = remember(monthLedger) { CashFlowCalculator.spendingByCategory(monthLedger) }
     val byPayer = remember(monthLedger) { CashFlowCalculator.spendingByPayer(monthLedger) }
     val split = remember(monthLedger) { CashFlowCalculator.sharedVsPersonal(monthLedger) }
-    val trend = remember(snapshot, month) {
+    val trend = remember(snapshot, month, startDay) {
         (5 downTo 0).map { back ->
             val m = month.minusMonths(back.toLong())
-            m to CashFlowCalculator.summarize(snapshot.ledgerIn(Period.month(m)))
+            m to CashFlowCalculator.summarize(snapshot.ledgerIn(Period.month(m, startDay)))
         }
     }
 
     LazyColumn(contentPadding = PaddingValues(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-        item { MonthSelector(month, vm::setMonth) }
+        item { MonthSelector(month, vm::setMonth, startDay = state.settings.monthStartDay) }
         item {
             SectionCard(title = stringResource(R.string.income_vs_expenses)) {
                 StatLine(stringResource(R.string.income), money(flow.income), finance.income)

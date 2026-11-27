@@ -16,16 +16,20 @@ import androidx.compose.material.icons.filled.Savings
 import androidx.compose.material.icons.filled.Category
 import androidx.compose.material.icons.filled.Cloud
 import androidx.compose.material.icons.filled.Backup
+import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Remove
 import androidx.compose.material.icons.filled.Group
 import androidx.compose.material.icons.filled.SwapHoriz
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.ListItem
 import androidx.compose.material3.ListItemDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.ui.Alignment
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
@@ -44,7 +48,11 @@ import com.baytna.app.ui.Routes
 import com.baytna.app.ui.SectionCard
 import com.baytna.app.ui.SwitchRow
 import com.baytna.app.ui.currentLocale
+import com.baytna.app.ui.Fmt
 import com.baytna.domain.model.TransactionType
+import com.baytna.domain.time.MAX_MONTH_START_DAY
+import com.baytna.domain.time.Period
+import java.time.YearMonth
 import android.widget.Toast
 
 @Composable
@@ -88,6 +96,30 @@ fun MoreScreen(vm: MainViewModel, state: AppState.Ready, nav: NavController) {
                 NavRow(Icons.Filled.Autorenew, stringResource(R.string.recurring)) { nav.navigate("recurring") }
                 NavRow(Icons.Filled.Assessment, stringResource(R.string.reports)) { nav.navigate("reports") }
                 NavRow(Icons.Filled.History, stringResource(R.string.activity)) { nav.navigate("activity") }
+            }
+        }
+        item {
+            SectionCard(title = stringResource(R.string.budget_month)) {
+                val day = state.settings.monthStartDay
+                Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                    Text(
+                        if (day == 1) stringResource(R.string.month_starts_calendar) else stringResource(R.string.month_starts_on_day, day),
+                        style = MaterialTheme.typography.bodyLarge, modifier = Modifier.weight(1f),
+                    )
+                    IconButton(onClick = { vm.setMonthStartDay(day - 1) }, enabled = day > 1) {
+                        Icon(Icons.Filled.Remove, contentDescription = stringResource(R.string.month_start_earlier))
+                    }
+                    IconButton(onClick = { vm.setMonthStartDay(day + 1) }, enabled = day < MAX_MONTH_START_DAY) {
+                        Icon(Icons.Filled.Add, contentDescription = stringResource(R.string.month_start_later))
+                    }
+                }
+                val example = YearMonth.of(2026, 12)
+                Text(
+                    if (day == 1) stringResource(R.string.month_start_hint_calendar)
+                    else stringResource(R.string.month_start_hint, Fmt.monthTitle(example, currentLocale()),
+                        Fmt.periodRange(Period.month(example, day), currentLocale())),
+                    style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
             }
         }
         item {

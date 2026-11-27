@@ -70,7 +70,8 @@ fun HomeScreen(vm: MainViewModel, state: AppState.Ready, nav: NavController) {
     val month by vm.month.collectAsStateWithLifecycle()
     val budget by vm.budget.collectAsStateWithLifecycle()
     val snapshot = state.snapshot
-    val period = remember(month) { Period.month(month) }
+    val startDay = state.settings.monthStartDay
+    val period = remember(month, startDay) { Period.month(month, startDay) }
     val monthLedger = remember(snapshot, period) { snapshot.ledgerIn(period) }
     val flow = remember(monthLedger) { CashFlowCalculator.summarize(monthLedger) }
     val byCategory = remember(monthLedger) { CashFlowCalculator.spendingByCategory(monthLedger) }
@@ -103,7 +104,7 @@ fun HomeScreen(vm: MainViewModel, state: AppState.Ready, nav: NavController) {
             }
             items(due.take(3), key = { "due_" + it.id }) { r -> DueRow(vm, state, r, today) { confirming = r } }
         }
-        item { MonthSelector(month, vm::setMonth) }
+        item { MonthSelector(month, vm::setMonth, startDay = state.settings.monthStartDay) }
         item { AccountCards(snapshot, monthLedger) { nav.navigate("accounts") } }
         item {
             SectionCard(title = stringResource(R.string.cash_flow_this_month)) {

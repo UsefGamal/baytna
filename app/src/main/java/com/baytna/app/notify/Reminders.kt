@@ -33,11 +33,11 @@ import com.baytna.domain.model.TransactionType
 import com.baytna.domain.money.Money
 import com.baytna.domain.time.CAIRO
 import com.baytna.domain.time.Period
+import com.baytna.domain.time.budgetMonthOf
 import kotlinx.coroutines.flow.first
 import java.time.Duration
 import java.time.LocalDate
 import java.time.LocalTime
-import java.time.YearMonth
 import java.time.ZonedDateTime
 import java.util.concurrent.TimeUnit
 
@@ -92,9 +92,10 @@ class Reminders(
             out += Reminder("rec:${r.id}:${r.nextDueDate}", title, text)
         }
 
-        val month = YearMonth.from(today)
+        val startDay = settings.settings.first().monthStartDay
+        val month = budgetMonthOf(today, startDay)
         repo.budgetWithAllocations(h.id, month)?.let { (budget, allocations) ->
-            val period = Period.month(month)
+            val period = Period.month(month, startDay)
             val spending = CashFlowCalculator.spendingByCategory(
                 repo.allTransactions(h.id).filter { it.deletedAt == null && period.contains(it.occurredAt) }.map { it.toLedger() },
             )

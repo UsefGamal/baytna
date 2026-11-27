@@ -400,6 +400,13 @@
     <string name="set_aside_this_year">المدّخر هذه السنة</string>
     <string name="withdrawn_this_year">المسحوب هذه السنة</string>
     <string name="reminders">التذكيرات</string>
+    <string name="budget_month">شهر الميزانية</string>
+    <string name="month_starts_calendar">يبدأ يوم 1</string>
+    <string name="month_starts_on_day">يبدأ يوم %1$d</string>
+    <string name="month_start_earlier">ابدأ قبلها بيوم</string>
+    <string name="month_start_later">ابدأ بعدها بيوم</string>
+    <string name="month_start_hint_calendar">الشهر من أول يوم لآخر يوم. لو مرتبك بينزل قبل الشهر اللي بيصرف عليه، اختار اليوم اللي بينزل فيه عادةً.</string>
+    <string name="month_start_hint">كل شهر باسم الشهر اللي المرتب بيصرف عليه. مثلاً %1$s من %2$s. الميزانيات والتقارير وحركة الحسابات بتمشي على كده. الإعداد ده للموبايل ده بس.</string>
     <string name="reminders_hint">تذكير يومي الساعة 9 صباحاً بالفواتير والدخل المستحق، وبالميزانيات التي بلغت 90% أو تجاوزتها.</string>
     <string name="reminders_denied">الإشعارات محظورة لتطبيق بيتنا. اسمح بها من إعدادات الهاتف.</string>
     <string name="reminders_channel">التذكيرات</string>

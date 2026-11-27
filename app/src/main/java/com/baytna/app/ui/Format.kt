@@ -9,6 +9,7 @@ import com.baytna.app.R
 import com.baytna.domain.money.CurrencyCode
 import com.baytna.domain.money.Money
 import com.baytna.domain.time.CAIRO
+import com.baytna.domain.time.Period
 import java.math.BigDecimal
 import java.text.NumberFormat
 import java.time.Instant
@@ -44,6 +45,12 @@ object Fmt {
 
     fun monthTitle(month: YearMonth, locale: Locale): String =
         month.format(DateTimeFormatter.ofPattern("LLLL yyyy", locale))
+
+    /** "25 Nov – 24 Dec" for a budget month that does not start on the 1st. */
+    fun periodRange(period: Period, locale: Locale): String {
+        val f = DateTimeFormatter.ofPattern("d MMM", locale)
+        return "${period.startDate.format(f)} – ${period.endDateInclusive.format(f)}"
+    }
 
     fun date(epochMs: Long, locale: Locale): String =
         Instant.ofEpochMilli(epochMs).atZone(CAIRO).toLocalDate()

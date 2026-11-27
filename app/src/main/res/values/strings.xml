@@ -400,6 +400,13 @@
     <string name="set_aside_this_year">Set aside this year</string>
     <string name="withdrawn_this_year">Taken out this year</string>
     <string name="reminders">Reminders</string>
+    <string name="budget_month">Budget month</string>
+    <string name="month_starts_calendar">Starts on the 1st</string>
+    <string name="month_starts_on_day">Starts on day %1$d</string>
+    <string name="month_start_earlier">Start one day earlier</string>
+    <string name="month_start_later">Start one day later</string>
+    <string name="month_start_hint_calendar">Months run from the 1st to the last day. If your salary comes before the month it pays for, set the day it usually arrives.</string>
+    <string name="month_start_hint">Each month is named for the month it pays for. For example, %1$s runs %2$s. Budgets, reports and account activity follow this. This setting is for this phone only.</string>
     <string name="reminders_hint">A daily reminder at 9 AM for bills and income that are due, and for budgets at 90% or over.</string>
     <string name="reminders_denied">Notifications are blocked for Baytna. Allow them in the phone\'s settings.</string>
     <string name="reminders_channel">Reminders</string>

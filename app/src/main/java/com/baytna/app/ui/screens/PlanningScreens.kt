@@ -85,9 +85,9 @@ import com.baytna.domain.planning.Frequency
 import com.baytna.domain.planning.Recurrence
 import com.baytna.domain.time.CAIRO
 import com.baytna.domain.time.Period
+import com.baytna.domain.time.budgetMonthOf
 import java.time.Instant
 import java.time.LocalDate
-import java.time.Year
 import java.time.YearMonth
 import java.time.ZoneOffset
 import java.time.format.DateTimeFormatter
@@ -698,15 +698,16 @@ fun ActivityScreen(vm: MainViewModel, state: AppState.Ready, nav: NavController)
 @Composable
 fun ReportsScreen(vm: MainViewModel, state: AppState.Ready, nav: NavController) {
     val planning by vm.planning.collectAsStateWithLifecycle()
-    var year by remember { mutableStateOf(Year.now(CAIRO).value) }
+    var year by remember { mutableStateOf(budgetMonthOf(today(), state.settings.monthStartDay).year) }
     val snapshot = state.snapshot
     val locale = currentLocale()
     val finance = LocalFinanceColors.current
-    val period = remember(year) { Period(LocalDate.of(year, 1, 1), LocalDate.of(year, 12, 31)) }
+    val startDay = state.settings.monthStartDay
+    val period = remember(year, startDay) { Period.year(year, startDay) }
     val ledger = remember(snapshot, period) { snapshot.ledgerIn(period) }
     val total = remember(ledger) { CashFlowCalculator.summarize(ledger) }
-    val months = remember(snapshot, year) {
-        (1..12).map { m -> YearMonth.of(year, m) }.map { ym -> ym to CashFlowCalculator.summarize(snapshot.ledgerIn(Period.month(ym))) }
+    val months = remember(snapshot, year, startDay) {
+        (1..12).map { m -> YearMonth.of(year, m) }.map { ym -> ym to CashFlowCalculator.summarize(snapshot.ledgerIn(Period.month(ym, startDay))) }
     }
     val byCategory = remember(ledger) { CashFlowCalculator.spendingByCategory(ledger) }
     val byPayer = remember(ledger) { CashFlowCalculator.spendingByPayer(ledger) }

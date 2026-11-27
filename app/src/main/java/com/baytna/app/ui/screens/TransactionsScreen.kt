@@ -55,7 +55,7 @@ fun TransactionsScreen(vm: MainViewModel, state: AppState.Ready, nav: NavControl
     val locale = currentLocale()
 
     val filtered = remember(snapshot, month, query, typeFilter, showDeleted) {
-        val period = Period.month(month)
+        val period = Period.month(month, state.settings.monthStartDay)
         val q = query.trim().lowercase(locale)
         snapshot.transactions.filter { tx ->
             period.contains(tx.occurredAt) &&
@@ -73,7 +73,7 @@ fun TransactionsScreen(vm: MainViewModel, state: AppState.Ready, nav: NavControl
     val grouped = remember(filtered) { filtered.groupBy { Fmt.localDate(it.occurredAt) } }
 
     LazyColumn(Modifier.fillMaxWidth()) {
-        item { MonthSelector(month, vm::setMonth, Modifier.padding(horizontal = 8.dp)) }
+        item { MonthSelector(month, vm::setMonth, Modifier.padding(horizontal = 8.dp), startDay = state.settings.monthStartDay) }
         item {
             Column(Modifier.padding(horizontal = 16.dp)) {
                 OutlinedTextField(

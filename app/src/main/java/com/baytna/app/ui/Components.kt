@@ -50,15 +50,22 @@ import com.baytna.domain.model.BudgetWarning
 import com.baytna.domain.model.Ownership
 import com.baytna.domain.model.TransactionType
 import com.baytna.domain.money.Money
+import com.baytna.domain.time.Period
 import java.time.YearMonth
 
 @Composable
-fun MonthSelector(month: YearMonth, onChange: (YearMonth) -> Unit, modifier: Modifier = Modifier) {
+fun MonthSelector(month: YearMonth, onChange: (YearMonth) -> Unit, modifier: Modifier = Modifier, startDay: Int = 1) {
     Row(modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween) {
         IconButton(onClick = { onChange(month.minusMonths(1)) }) {
             Icon(Icons.AutoMirrored.Filled.KeyboardArrowLeft, contentDescription = stringResource(R.string.previous_month))
         }
-        Text(Fmt.monthTitle(month, currentLocale()), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
+        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+            Text(Fmt.monthTitle(month, currentLocale()), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
+            if (startDay > 1) {
+                Text(Fmt.periodRange(Period.month(month, startDay), currentLocale()), style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
+        }
         IconButton(onClick = { onChange(month.plusMonths(1)) }) {
             Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, contentDescription = stringResource(R.string.next_month))
         }

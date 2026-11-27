@@ -3,10 +3,12 @@ package com.baytna.app.data.prefs
 import android.content.Context
 import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
+import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.core.longPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.core.stringSetPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
+import com.baytna.domain.time.clampStartDay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 
@@ -21,6 +23,8 @@ data class Settings(
     val lastSyncAt: Long? = null,
     /** Daily reminders for due recurring items and budgets close to their limit. */
     val remindersEnabled: Boolean = false,
+    /** Day of the month a budget month starts (1 = calendar months). 25 makes "December" run 25 Nov to 24 Dec. */
+    val monthStartDay: Int = 1,
 )
 
 private val Context.dataStore by preferencesDataStore(name = "baytna_settings")
@@ -31,6 +35,7 @@ class SettingsStore(private val context: Context) {
     private val linkedKey = stringPreferencesKey("linked_household_id")
     private val lastSyncKey = longPreferencesKey("last_sync_at")
     private val remindersKey = booleanPreferencesKey("reminders_enabled")
+    private val monthStartKey = intPreferencesKey("month_start_day")
     private val sentRemindersKey = stringSetPreferencesKey("sent_reminders")
 
     val settings: Flow<Settings> = context.dataStore.data.map { p ->
@@ -40,6 +45,7 @@ class SettingsStore(private val context: Context) {
             linkedHouseholdId = p[linkedKey],
             lastSyncAt = p[lastSyncKey],
             remindersEnabled = p[remindersKey] ?: false,
+            monthStartDay = clampStartDay(p[monthStartKey] ?: 1),
         )
     }
 
@@ -67,6 +73,10 @@ class SettingsStore(private val context: Context) {
 
     suspend fun setRemindersEnabled(enabled: Boolean) {
         context.dataStore.edit { it[remindersKey] = enabled }
+    }
+
+    suspend fun setMonthStartDay(day: Int) {
+        context.dataStore.edit { it[monthStartKey] = clampStartDay(day) }
     }
 
     /** Reminder keys already shown, so each reminder appears once. */

@@ -540,9 +540,9 @@ class BaytnaRepository(
     /**
      * Creates the monthly hybrid budget. When [copyPrevious] and last month has a budget, copies its
      * planning income and allocations; if rollover is enabled, each category limit carries last
-     * month's remaining (or overspend) as rollover.
+     * month's remaining (or overspend) as rollover, measured over last month as set by [startDay].
      */
-    suspend fun createMonthlyBudget(householdId: String, month: YearMonth, copyPrevious: Boolean): String = db.withTransaction {
+    suspend fun createMonthlyBudget(householdId: String, month: YearMonth, copyPrevious: Boolean, startDay: Int = 1): String = db.withTransaction {
         budgets.getMonthly(householdId, month.atDay(1).toString())?.let { return@withTransaction it.id }
         val t = now()
         val previous = if (copyPrevious) budgets.getMonthly(householdId, month.minusMonths(1).atDay(1).toString()) else null
@@ -566,7 +566,7 @@ class BaytnaRepository(
         if (previous != null) {
             val prevAllocations = budgets.getAllocations(previous.id)
             val rollovers: Map<String, Money> = if (previous.rolloverEnabled) {
-                val prevPeriod = Period(LocalDate.parse(previous.startDate), LocalDate.parse(previous.endDate))
+                val prevPeriod = Period.month(month.minusMonths(1), startDay)
                 val spending = CashFlowCalculator.spendingByCategory(
                     transactions.getAll(householdId).filter { it.deletedAt == null && prevPeriod.contains(it.occurredAt) }.map { it.toLedger() },
                 )

@@ -12,6 +12,8 @@ import com.baytna.app.data.repo.toMovement
 import com.baytna.domain.money.Money
 import com.baytna.domain.planning.GoalProgress
 import com.baytna.domain.planning.SavingsMath
+import com.baytna.domain.time.CAIRO
+import com.baytna.domain.time.budgetMonthOf
 import java.time.LocalDate
 import com.baytna.app.data.db.BudgetEntity
 import com.baytna.app.data.db.MemberEntity
@@ -23,6 +25,7 @@ import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
@@ -113,6 +116,17 @@ class MainViewModel(val container: AppContainer) : ViewModel() {
         container.reminders.schedule(enabled)
         if (enabled) runCatching { container.reminders.run() }
     }
+
+    init {
+        // Open on the budget month that contains today, and jump back to it when the month start day changes.
+        viewModelScope.launch {
+            container.settings.settings.map { it.monthStartDay }.distinctUntilChanged().collect { day ->
+                container.selectedMonth.value = budgetMonthOf(LocalDate.now(CAIRO), day)
+            }
+        }
+    }
+
+    fun setMonthStartDay(day: Int) = viewModelScope.launch { container.settings.setMonthStartDay(day) }
 
     fun setMonth(m: YearMonth) {
         container.selectedMonth.value = m

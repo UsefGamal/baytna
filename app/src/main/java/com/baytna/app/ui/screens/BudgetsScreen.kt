@@ -71,19 +71,21 @@ fun BudgetsScreen(vm: MainViewModel, state: AppState.Ready) {
     var editAllocation by remember { mutableStateOf<AllocationEdit?>(null) }
     val locale = currentLocale()
 
-    val spending = remember(snapshot, month) { CashFlowCalculator.spendingByCategory(snapshot.ledgerIn(Period.month(month))) }
+    val spending = remember(snapshot, month, state.settings.monthStartDay) {
+        CashFlowCalculator.spendingByCategory(snapshot.ledgerIn(Period.month(month, state.settings.monthStartDay)))
+    }
 
     LazyColumn(contentPadding = PaddingValues(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-        item { MonthSelector(month, vm::setMonth) }
+        item { MonthSelector(month, vm::setMonth, startDay = state.settings.monthStartDay) }
         val bs = budgetState
         if (bs == null) {
             item {
                 SectionCard(title = stringResource(R.string.no_budget_for, Fmt.monthTitle(month, locale))) {
                     Text(stringResource(R.string.budget_explainer), style = MaterialTheme.typography.bodyMedium)
                     Spacer(Modifier.height(12.dp))
-                    Button(onClick = { vm.launch { createMonthlyBudget(snapshot.household.id, month, copyPrevious = true) } },
+                    Button(onClick = { vm.launch { createMonthlyBudget(snapshot.household.id, month, copyPrevious = true, startDay = state.settings.monthStartDay) } },
                         modifier = Modifier.fillMaxWidth()) { Text(stringResource(R.string.create_from_last_month)) }
-                    OutlinedButton(onClick = { vm.launch { createMonthlyBudget(snapshot.household.id, month, copyPrevious = false) } },
+                    OutlinedButton(onClick = { vm.launch { createMonthlyBudget(snapshot.household.id, month, copyPrevious = false, startDay = state.settings.monthStartDay) } },
                         modifier = Modifier.fillMaxWidth()) { Text(stringResource(R.string.create_empty_budget)) }
                 }
             }

@@ -9,7 +9,7 @@ source of truth; Firebase keeps two phones in sync.
 ## What works today
 
 - **Onboarding**: household name, both members, starting balances for Cash and Bank, language.
-- **Home**: month selector, household balance, income / expenses / net cash flow (transfers excluded,
+- **Home**: month selector, swipeable per-account cards (each account's balance and activity, no summed total), income / expenses / net cash flow (transfers excluded,
   refunds netted), budget progress, spending by category, recent transactions, truthful sync status.
 - **Transactions**: income, expense, transfer, refund (capped at the original expense). Payer and
   shared/personal owner are independent. Search, type filters, date-grouped list, edit, duplicate,

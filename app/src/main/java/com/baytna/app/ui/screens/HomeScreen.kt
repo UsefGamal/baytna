@@ -12,6 +12,9 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.pager.HorizontalPager
+import androidx.compose.foundation.pager.rememberPagerState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CloudDone
 import androidx.compose.material.icons.filled.CloudOff
@@ -30,11 +33,15 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavController
 import com.baytna.app.R
+import com.baytna.app.data.db.AccountEntity
+import com.baytna.app.data.repo.HouseholdSnapshot
 import com.baytna.app.data.repo.toAllocation
 import com.baytna.app.ui.netColor
 import com.baytna.app.ui.AppState
@@ -50,9 +57,11 @@ import com.baytna.app.ui.displayName
 import com.baytna.app.ui.money
 import com.baytna.app.ui.theme.LocalFinanceColors
 import com.baytna.app.ui.warningLabel
+import com.baytna.domain.finance.AccountActivityCalculator
 import com.baytna.domain.finance.BudgetMath
 import com.baytna.domain.finance.CashFlowCalculator
 import com.baytna.domain.model.BudgetWarning
+import com.baytna.domain.model.LedgerEntry
 import com.baytna.domain.money.Money
 import com.baytna.domain.time.Period
 
@@ -95,13 +104,7 @@ fun HomeScreen(vm: MainViewModel, state: AppState.Ready, nav: NavController) {
             items(due.take(3), key = { "due_" + it.id }) { r -> DueRow(vm, state, r, today) { confirming = r } }
         }
         item { MonthSelector(month, vm::setMonth) }
-        item {
-            SectionCard(title = stringResource(R.string.household_balance)) {
-                Text(money(snapshot.totalBalance), style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold)
-                Text(stringResource(R.string.household_balance_hint), style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant)
-            }
-        }
+        item { AccountCards(snapshot, monthLedger) { nav.navigate("accounts") } }
         item {
             SectionCard(title = stringResource(R.string.cash_flow_this_month)) {
                 StatLine(stringResource(R.string.income), money(flow.income), finance.income)
@@ -170,6 +173,90 @@ fun HomeScreen(vm: MainViewModel, state: AppState.Ready, nav: NavController) {
             TransactionRow(tx, snapshot) { nav.navigate(Routes.editTransaction(id = tx.id)) }
         }
         item { Spacer(Modifier.height(72.dp)) }
+    }
+}
+
+/**
+ * One swipeable card per active account. Each account keeps its own purpose (cash, savings, a member's wallet),
+ * so balances are shown side by side and never summed into one household number.
+ */
+@Composable
+fun AccountCards(snapshot: HouseholdSnapshot, monthLedger: List<LedgerEntry>, onManage: () -> Unit) {
+    val accounts = remember(snapshot) { snapshot.accounts.filter { it.isActive } }
+    Column {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Text(stringResource(R.string.accounts), Modifier.weight(1f), style = MaterialTheme.typography.titleMedium)
+            TextButton(onClick = onManage) { Text(stringResource(R.string.see_all)) }
+        }
+        if (accounts.isEmpty()) {
+            EmptyState(stringResource(R.string.no_active_accounts))
+            return@Column
+        }
+        val pager = rememberPagerState { accounts.size }
+        HorizontalPager(
+            state = pager,
+            // The next card peeks in, so it is clear the row scrolls sideways.
+            contentPadding = androidx.compose.foundation.layout.PaddingValues(end = if (accounts.size > 1) 32.dp else 0.dp),
+            pageSpacing = 12.dp,
+            verticalAlignment = Alignment.Top,
+            key = { accounts[it].id },
+        ) { page ->
+            AccountCard(snapshot, accounts[page], monthLedger)
+        }
+        if (accounts.size > 1) {
+            val label = stringResource(R.string.account_page, pager.currentPage + 1, accounts.size)
+            Row(
+                Modifier.fillMaxWidth().padding(top = 8.dp).semantics { contentDescription = label },
+                horizontalArrangement = Arrangement.Center,
+            ) {
+                accounts.indices.forEach { i ->
+                    val selected = i == pager.currentPage
+                    androidx.compose.foundation.layout.Box(
+                        Modifier.padding(horizontal = 3.dp).size(if (selected) 8.dp else 6.dp).background(
+                            if (selected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outlineVariant,
+                            CircleShape,
+                        ),
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun AccountCard(snapshot: HouseholdSnapshot, account: AccountEntity, monthLedger: List<LedgerEntry>) {
+    val finance = LocalFinanceColors.current
+    val balance = snapshot.balances[account.id] ?: Money.ZERO
+    val activity = remember(account.id, monthLedger) { AccountActivityCalculator.summarize(account.id, monthLedger) }
+    val owner = account.ownerUserId?.let { snapshot.membersById[it]?.displayName }
+    SectionCard {
+        Text(account.name, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+        Text(
+            listOfNotNull(accountTypeLabel(account.type), if (account.isShared) stringResource(R.string.shared) else owner)
+                .joinToString(" · "),
+            style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+        Spacer(Modifier.height(8.dp))
+        Text(stringResource(R.string.account_balance), style = MaterialTheme.typography.labelMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant)
+        Text(money(balance), style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold,
+            color = if (balance.minor < 0) finance.expense else MaterialTheme.colorScheme.onSurface)
+        Spacer(Modifier.height(8.dp))
+        Text(stringResource(R.string.account_activity_month), style = MaterialTheme.typography.labelMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant)
+        if (activity.count == 0) {
+            Text(stringResource(R.string.account_no_activity), style = MaterialTheme.typography.bodyMedium)
+        } else {
+            StatLine(stringResource(R.string.account_money_in), money(activity.moneyIn), finance.income)
+            StatLine(stringResource(R.string.account_money_out), money(activity.moneyOut), finance.expense)
+            if (activity.transfersIn.isPositive) {
+                StatLine(stringResource(R.string.account_transfers_in), money(activity.transfersIn), MaterialTheme.colorScheme.onSurface)
+            }
+            if (activity.transfersOut.isPositive) {
+                StatLine(stringResource(R.string.account_transfers_out), money(activity.transfersOut), MaterialTheme.colorScheme.onSurface)
+            }
+            StatLine(stringResource(R.string.account_net_change), money(activity.net, signed = true), netColor(activity.net), bold = true)
+        }
     }
 }
 

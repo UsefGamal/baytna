@@ -24,6 +24,7 @@ Firebase Auth; household invitation; Firestore schema/indexes/rules;
 emulator tests; backend interfaces; outbox; WorkManager; remote cursor;
 realtime; idempotency; conflicts; two-device tests. Exit: reliable
 two-user shared data.
+Status: built (PR #3, account deletion in PR #12). Manual two-phone run: `docs/TWO_DEVICE_TEST_PLAN.md`.
 
 ## Phase 4 --- Planning
 
@@ -35,11 +36,13 @@ Status: built (savings goals, recurring items with confirm/skip, activity feed, 
 PostgreSQL migrations; Supabase Docker deployment; RLS; adapter;
 migration tool; reconciliation tests. Do not start until canonical
 schema and sync contract stabilize.
+Status: not started.
 
 ## Phase 6 --- Release
 
 RTL/accessibility; JSON backup/restore; CSV import/export; performance;
 security review; signed APK; install/upgrade guide.
+Status: built (PRs #5, #10, #12; v0.1.1 released). Left: split transactions, Play Store submission.
 
 ## Dependencies
 
